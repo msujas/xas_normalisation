@@ -9,11 +9,11 @@ os.chdir(direc)
 thetaOffset = 0.017104048
 
 
-dspacing = 3.13379
+dspacing = 3.133789
 planck = 6.62607015e-34
 charge = 1.60217663e-19
 speedOfLight = 299792458
-def angle_to_kev(angle):
+def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
     wavelength_m = wavelength*10**(-10)
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)

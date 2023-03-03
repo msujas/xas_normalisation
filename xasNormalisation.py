@@ -1,17 +1,19 @@
-from larch.xafs import autobk, find_e0, pre_edge
+from larch.xafs import find_e0, pre_edge
 from larch import Group
 import numpy as np
 import os
-from glob import glob
 import pandas as pd
 
 direc = r'Z:\visitor\ch6616\bm31\20230228/'
 os.chdir(direc)
 
+#counter names for monitor and transmission ion chambers and fluorescence
 highEmono = 'mon_3'
 lowEmono = 'mon_4'
 highEi1 = 'ion_1_3'
 lowEi1 = 'ion_1_2'
+fluorescenceCounter = 'xmap_roi00'
+#high energy cut-off for determining whether the 'lowE' or 'highE' ion chambers are used
 highE = 17.5
 def normalise(ds,group):
     group.energy = ds.index.values
@@ -52,7 +54,7 @@ for root,dirs,files in os.walk(os.getcwd()):
 
                 df0 = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0)
 
-                if 'xmap_roi00' in df0.columns:
+                if fluorescenceCounter in df0.columns:
                     dfFluo = pd.DataFrame()
                     dfFluo.index = df0.index
 
@@ -76,11 +78,11 @@ for root,dirs,files in os.walk(os.getcwd()):
                 for n in range(mismatchsize):
                     if E[-1] != E0[-1]:
                         dfTrans.drop(E0[-1],axis = 0,inplace = True)
-                        if 'xmap_roi00' in df0.columns:
+                        if fluorescenceCounter in df0.columns:
                             dfFluo.drop(E0[-1],axis = 0,inplace = True)
                     elif E[0] != E0[0]:
                         dfTrans.drop(E0[0],axis = 0,inplace=True)
-                        if 'xmap_roi00' in df0.columns:
+                        if fluorescenceCounter in df0.columns:
                             dfFluo.drop(E0[0],axis = 0,inplace = True)
                     E0 = dfTrans.index.values
             elif c != 0 and len(df.index.values) > len(dfTrans.index.values): #removing data points if data sizes don't match
@@ -97,13 +99,13 @@ for root,dirs,files in os.walk(os.getcwd()):
                         df.drop(E0[0],axis = 0,inplace=True)
                     E = df.index.values
       
-            if 'xmap_roi00' in df0.columns:
+            if fluorescenceCounter in df0.columns:
         
-                muFluo = df['xmap_roi00'].values/df[mon_counter].values
+                muFluo = df[fluorescenceCounter].values/df[mon_counter].values
                 dfFluo[c] = muFluo
                 ds = pd.Series(index = dfFluo.index,data = muFluo)
 
-                if np.max(df[mon_counter].values) > 500 and np.max(df['xmap_roi00'].values) > 10:
+                if np.max(df[mon_counter].values) > 500 and np.max(df[fluorescenceCounter].values) > 10:
                     groupF = Group()
                     normalise(ds,groupF)
                     basefileF = file.replace('.dat','F.nor')
@@ -132,7 +134,7 @@ for root,dirs,files in os.walk(os.getcwd()):
             basefileTmerge = file.replace('.dat','T.nor')
             fileTmerge = f'merge/{basefileTmerge}'
             np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
-        if 'xmap_roi00' in df0.columns:
+        if fluorescenceCounter in df0.columns:
             dfmergeFluo = dfFluo.mean(axis = 1)
             dfmergeFluo.name = 'mu'
             dfmergeFluo.to_csv('merge/fluoMerge.dat', sep = ' ')
