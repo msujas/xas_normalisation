@@ -6,7 +6,7 @@ from scipy.interpolate import interp1d
 
 direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6616/'
 os.chdir(direc)
-thetaOffset = 0.017104048
+thetaOffset = 0.018991970
 
 
 dspacing = 3.133789
@@ -18,6 +18,7 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     wavelength_m = wavelength*10**(-10)
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
     return np.round(energy_kev,6)
+
 for root, dirs, files in os.walk(os.getcwd()):
     if 'columns' in root:
         continue
@@ -102,7 +103,7 @@ for root, dirs, files in os.walk(os.getcwd()):
         spacing = np.mean(diffs).round(4)
 
 
-        ZEmin = 1
+        ZEmin = 0
         ZEmax = -1
         #os.chdir(f'{newdir}regrid/')
 
