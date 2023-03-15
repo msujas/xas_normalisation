@@ -9,4 +9,4 @@ It goes through all sub-folders to find xas data (.dat files). It then regrids t
 
 The xasNormalisation.py script should be run afterwards. It uses Larch (https://xraypy.github.io/xraylarch/index.html) to batch normalise all xas data in the 
 'regrid' folders created by the columnExtraction_thetaCorrection.py script. Monitor and transmission ion chamber, and fluorescence counter names are those 
-used for BM31. There's a high energy cut-off value to determine when different sets of ion chambers are used, which should be the standard for BM31.
+used for BM31. There's a high energy and low energy cut-off value to determine when different sets of ion chambers are used, which should be the standard for BM31; high energy: > 17.5 keV, mon_3, ion_1_3; medium: 7 - 17.5 keV, mon_4, ion_1_2; low energy: < 7 keV, mon_1, ion_1_1.
