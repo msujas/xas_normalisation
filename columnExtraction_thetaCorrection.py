@@ -6,13 +6,18 @@ from scipy.interpolate import interp1d
 
 direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6616/'
 os.chdir(direc)
-thetaOffset = 0.018991970
+thetaOffset = 0.017440119
 
 
 dspacing = 3.133789
 planck = 6.62607015e-34
 charge = 1.60217663e-19
 speedOfLight = 299792458
+
+fluoCounter = 'xmap_roi00'
+counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
+counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
+
 def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
     wavelength_m = wavelength*10**(-10)
@@ -47,6 +52,7 @@ for root, dirs, files in os.walk(os.getcwd()):
 
         f = open(file,'r')
         lines = f.readlines()
+        f.close()
         onscan = False
         dfFilteredDct = {}
         for c,line in enumerate(lines):
@@ -67,13 +73,13 @@ for root, dirs, files in os.walk(os.getcwd()):
                 onscan = False
                 if dfend-dfstart <= 1:
                     continue
-                f.close()
+                
                 df = pd.read_csv(file, skiprows = dfstart, nrows = dfend - dfstart, delim_whitespace = True, header = None)
                 df.columns = columns
-                if 'xmap_roi00' in columns:
-                    filtCols = ['ZapEnergy','TwoTheta','mon_3','mon_4','ion_1_2','ion_1_3','xmap_roi00']
+                if fluoCounter in columns:
+                    filtCols = counterNames
                 else:
-                    filtCols = ['ZapEnergy','TwoTheta','mon_3','mon_4','ion_1_2','ion_1_3']
+                    filtCols = counterNames_NF
                 dfFilteredDct[spectrum_count] = df[filtCols].copy(deep=True)
                 #dfFilteredDct[spectrum_count].set_index('ZapEnergy',inplace = True)
                 dfFilteredDct[spectrum_count]['Theta_offset'] =  dfFilteredDct[spectrum_count]['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
@@ -116,17 +122,12 @@ for root, dirs, files in os.walk(os.getcwd()):
                 try:
                     grid = np.arange(ZE[ZEmin].round(4),ZE[ZEmax].round(5),spacing)
                     grid = grid.round(5)
-                    gridfuncMon = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c]['mon_4'].values)
-                    regridDF['mon_4'] = gridfuncMon(grid).round(1)
-                    gridfuncMon3 = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c]['mon_3'].values)
-                    regridDF['mon_3'] = gridfuncMon3(grid).round(1)
-                    grindfuncI12 = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c]['ion_1_2'].values)
-                    regridDF['ion_1_2'] = grindfuncI12(grid).round(1)
-                    grindfuncI13 = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c]['ion_1_3'].values)
-                    regridDF['ion_1_3'] = grindfuncI13(grid).round(1)
-                    if 'xmap_roi00' in dfFilteredDct[0].columns:
-                        grindfuncxmap = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c]['xmap_roi00'].values)
-                        regridDF['xmap_roi00'] = grindfuncxmap(grid).round(1)
+                    for counter in filtCols:
+                        if 'mon' in counter or 'ion_1' in counter or fluoCounter in counter:
+                            gridfunc = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c][counter].values)
+                            regridDF[counter] = gridfunc(grid).round(1)
+
+
                     regridDF.index = grid
                     regridDF.index.name = 'energy_offset(keV)'
                     if n != 0:

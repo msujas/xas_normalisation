@@ -4,18 +4,26 @@ import numpy as np
 import os
 import pandas as pd
 
-direc = r'Z:\visitor\ch6616\bm31\20230228/'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6616/'
 os.chdir(direc)
 
 #counter names for monitor and transmission ion chambers and fluorescence
 highEmono = 'mon_3'
-lowEmono = 'mon_4'
+medEmono = 'mon_4'
 highEi1 = 'ion_1_3'
-lowEi1 = 'ion_1_2'
+medEi1 = 'ion_1_2'
+lowEmono = 'mon_1'
+lowEi1 = 'ion_1_1'
 fluorescenceCounter = 'xmap_roi00'
 #high energy cut-off for determining whether the 'lowE' or 'highE' ion chambers are used
 highE = 17.5
+lowE = 7
+
 def normalise(ds,group):
+    #The normalisation orders seem to be different between Athena and Larch. 
+    #1 and 2 in Larch seem to correspond to 2 and 3 in Athena (linear and quadratic), respectively. 0 Seems not to correspond to 1, however.
+    #0 appears linear, but with a shallower gradient than 1. The documentation recommends 0 if < 50 eV used to fit post-edge.
+    #The values used in this are roughly the same as the defaults if eV is used instead of keV
     group.energy = ds.index.values
     group.mu = ds.values
 
@@ -24,7 +32,7 @@ def normalise(ds,group):
     pre2 = -0.03
     if group.energy[-1] - group.energy[0] > 0.5: #EXAFS
         post1 = 0.15
-        nnorm = 2
+        nnorm = 2 
     else: #XANES
         post1 = 0.065
         nnorm = 1
@@ -66,9 +74,12 @@ for root,dirs,files in os.walk(os.getcwd()):
             if E[0] >= highE:
                 mon_counter = highEmono
                 i1_counter = highEi1
-            else:
+            elif E[0] < lowE:
                 mon_counter = lowEmono
                 i1_counter = lowEi1
+            else:
+                mon_counter = medEmono
+                i1_counter = medEi1
             if c != 0 and len(df.index.values) < len(dfTrans.index.values): #removing data points if data sizes don't match for averaging
 
                 E0 = dfTrans.index.values
