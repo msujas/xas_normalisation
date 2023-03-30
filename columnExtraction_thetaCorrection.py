@@ -86,15 +86,12 @@ for root, dirs, files in os.walk(os.getcwd()):
                 dfFilteredDct[spectrum_count]['Theta_offset'] =  dfFilteredDct[spectrum_count]['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
                 dfFilteredDct[spectrum_count]['ZapEnergy_offset'] = dfFilteredDct[spectrum_count]['Theta_offset'].apply(angle_to_kev)
                 dfFilteredDct[spectrum_count].set_index('ZapEnergy_offset',inplace = True)
-                filtCols2 = []
+
                 for counter in filtCols: #removing unused counters
                     if 'mon_' in counter or 'ion_1' in counter:
                         if np.max(dfFilteredDct[spectrum_count][counter].values) < 10000*timeStep:
                             dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
-                        else:
-                            filtCols2.append(counter)
-                    else:
-                        filtCols2.append(counter)
+
 
                 newfile = f'{newdir}{basename}_{spectrum_count:02d}.dat'
                 newfilerg = f'{newdir}regrid/{basename}_{spectrum_count:02d}.dat'
@@ -128,11 +125,15 @@ for root, dirs, files in os.walk(os.getcwd()):
             newfilerg = f'{newdir}regrid/{basename}_{c:02d}.dat'
             regridDF = pd.DataFrame()
             for n in range(5):
-
+                
                 try:
                     grid = np.arange(ZE[ZEmin].round(4),ZE[ZEmax].round(5),spacing)
                     grid = grid.round(5)
-                    for counter in filtCols2:
+                    if len(dfFilteredDct[c].index.values) < len(grid) - 5:
+                        print(f'{file} spectrum {c} too short, couldn\'t be regridded')
+                        os.remove(newfilerg)
+                        break
+                    for counter in dfFilteredDct[c].columns:
                         if 'mon' in counter or 'ion_1' in counter or fluoCounter in counter:
                             gridfunc = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c][counter].values)
                             regridDF[counter] = gridfunc(grid).round(1)
@@ -148,12 +149,6 @@ for root, dirs, files in os.walk(os.getcwd()):
                         ZEmin +=1
                     elif 'above' in str(e):
                         ZEmax -= 1
-                    if n == 4:
-                        print(len(ZE))
-                        print(len(dfFilteredDct[c].index.values))
-                        print(f'{file} spectrum {c} couldn\'t be regridded')
-                        print(str(e))
-                        os.remove(newfilerg)
             if len(regridDF.columns) == 0:
                 continue
             regridDF.to_csv(newfilerg,sep = ' ',mode = 'a')
