@@ -4,7 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 
-direc = r'Z:\visitor\ch6617\bm31\20230329\CMS029/'
+direc = r'Z:\visitor\ch6617\bm31\20230329\pellets/'
 os.chdir(direc)
 thetaOffset = 0
 
@@ -124,19 +124,19 @@ for root, dirs, files in os.walk(os.getcwd()):
         ZEmin = 0
         ZEmax = -1
         #os.chdir(f'{newdir}regrid/')
-
+        no_tries = 6
         for c in dfFilteredDct:
 
             newfilerg = f'{newdir}regrid/{basename}_{c:02d}.dat'
             regridDF = pd.DataFrame()
             if len([col for col in dfFilteredDct[c].columns if 'mon_' in col]) == 0:
                 continue
-            for n in range(5):
+            for n in range(no_tries):
                 
                 try:
                     grid = np.arange(ZE[ZEmin].round(4),ZE[ZEmax].round(5),spacing)
                     grid = grid.round(5)
-                    if len(dfFilteredDct[c].index.values) < len(grid) - 5:
+                    if len(dfFilteredDct[c].index.values) < len(grid) - no_tries + 1:
                         print(f'{file} spectrum {c} too short, couldn\'t be regridded')
                         if os.path.exists(newfilerg):
                             os.remove(newfilerg)
@@ -150,13 +150,17 @@ for root, dirs, files in os.walk(os.getcwd()):
                     regridDF.index = grid
                     regridDF.index.name = 'energy_offset(keV)'
                     if n != 0:
-                        print(f'ZEmin = {ZEmin}, ZEmax {ZEmax}')
+                        print(f'spectrum {c} ZEmin = {ZEmin}, ZEmax {ZEmax}')
                     break
                 except ValueError as e:
                     if 'below' in str(e):
                         ZEmin +=1
                     elif 'above' in str(e):
                         ZEmax -= 1
+                    if n == no_tries - 1:
+                        print(f'{file} spectrum {c} too short, couldn\'t be regridded')
+                        if os.path.exists(newfilerg):
+                            os.remove(newfilerg)
             if len(regridDF.columns) == 0:
                 continue
             regridDF.to_csv(newfilerg,sep = ' ',mode = 'a')
