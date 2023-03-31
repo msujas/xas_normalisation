@@ -4,7 +4,7 @@ import numpy as np
 import os
 import pandas as pd
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6616/'
+direc = r'Z:\visitor\ch6617\bm31\20230329\CMS029/'
 os.chdir(direc)
 
 

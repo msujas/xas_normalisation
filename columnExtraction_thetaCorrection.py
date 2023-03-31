@@ -4,9 +4,9 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6616/'
+direc = r'Z:\visitor\ch6617\bm31\20230329\CMS029/'
 os.chdir(direc)
-thetaOffset = 0.017440119
+thetaOffset = 0
 
 
 dspacing = 3.133789
@@ -89,7 +89,7 @@ for root, dirs, files in os.walk(os.getcwd()):
 
                 for counter in filtCols: #removing unused counters
                     if 'mon_' in counter or 'ion_1' in counter:
-                        if np.max(dfFilteredDct[spectrum_count][counter].values) < 10000*timeStep:
+                        if np.max(dfFilteredDct[spectrum_count][counter].values) < 1000*timeStep:
                             dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
     
 
@@ -129,6 +129,8 @@ for root, dirs, files in os.walk(os.getcwd()):
 
             newfilerg = f'{newdir}regrid/{basename}_{c:02d}.dat'
             regridDF = pd.DataFrame()
+            if len([col for col in dfFilteredDct[c].columns if 'mon_' in col]) == 0:
+                continue
             for n in range(5):
                 
                 try:
@@ -136,14 +138,15 @@ for root, dirs, files in os.walk(os.getcwd()):
                     grid = grid.round(5)
                     if len(dfFilteredDct[c].index.values) < len(grid) - 5:
                         print(f'{file} spectrum {c} too short, couldn\'t be regridded')
-                        os.remove(newfilerg)
+                        if os.path.exists(newfilerg):
+                            os.remove(newfilerg)
                         break
                     for counter in dfFilteredDct[c].columns:
                         if 'mon' in counter or 'ion_1' in counter or fluoCounter in counter:
                             gridfunc = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c][counter].values)
                             regridDF[counter] = gridfunc(grid).round(1)
 
-
+                    
                     regridDF.index = grid
                     regridDF.index.name = 'energy_offset(keV)'
                     if n != 0:
