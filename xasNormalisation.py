@@ -4,19 +4,20 @@ import numpy as np
 import os
 import pandas as pd
 
-direc = r'Z:\visitor\ch6617\bm31\20230329\CMS029/'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6617/'
 os.chdir(direc)
 
 
 fluorescenceCounter = 'xmap_roi00'
 
 
-def normalise(ds,group):
+def normalise(ds,group, kev = True):
     '''
     The normalisation orders seem to be different between Athena and Larch. 
     1 and 2 in Larch seem to correspond to 2 and 3 in Athena (linear and quadratic), respectively. 0 Seems not to correspond to 1, however.
     0 appears linear, but with a shallower gradient than 1. The documentation recommends 0 if < 50 eV used to fit post-edge.
     The values used in this are roughly the same as the defaults if eV is used instead of keV
+    Some distributions of Larch don't normalise data properly in keV, so data is converted to eV for normalising
     '''
     group.energy = ds.index.values
     group.mu = ds.values
@@ -31,7 +32,12 @@ def normalise(ds,group):
         post1 = 0.065
         nnorm = 1
     post2 = group.energy[-1] - group.e0
-    pre_edge(group = group,energy = group.energy, mu = group.mu, e0 = group.e0, pre1=pre1,pre2=pre2,norm1 = post1, norm2=post2, nnorm = nnorm)
+    if kev: #converting axis to eV
+        scale = 1000
+    else:
+        scale = 1
+    pre_edge(group = group,energy = group.energy*scale, mu = group.mu, e0 = group.e0*scale, pre1=pre1*scale,pre2=pre2*scale,
+             norm1 = post1*scale, norm2=post2*scale, nnorm = nnorm)
 
 
 for root,dirs,files in os.walk(os.getcwd()):
