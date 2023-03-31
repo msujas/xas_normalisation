@@ -91,11 +91,16 @@ for root, dirs, files in os.walk(os.getcwd()):
                     if 'mon_' in counter or 'ion_1' in counter:
                         if np.max(dfFilteredDct[spectrum_count][counter].values) < 10000*timeStep:
                             dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
+    
 
-
-                newfile = f'{newdir}{basename}_{spectrum_count:02d}.dat'
-                newfilerg = f'{newdir}regrid/{basename}_{spectrum_count:02d}.dat'
-
+                newfile = f'{newdir}/{basename}_{spectrum_count:02d}.dat'
+                newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:02d}.dat'
+                if len([col for col in dfFilteredDct[spectrum_count].columns if 'mon_' in col]) == 0:
+                    if os.path.exists(newfilerg):
+                        os.remove(newfilerg)
+                    if os.path.exists(newfile):
+                        os.remove(newfile)
+                    continue
                 f = open(newfile,'w')
                 f.write(newstring)
                 f.close()
