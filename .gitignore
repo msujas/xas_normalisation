@@ -1,0 +1,3 @@
+deleteFiles.py
+*.dat
+.ipynb_checkpoints
