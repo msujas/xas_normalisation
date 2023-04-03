@@ -3,8 +3,9 @@ from glob import glob
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
+#import math
 
-direc = r'Z:\visitor\ch6617\bm31\20230329\pellets/'
+direc = r'Z:\visitor\ch6617\bm31\20230329/'
 os.chdir(direc)
 thetaOffset = 0
 
@@ -24,6 +25,7 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
     return np.round(energy_kev,6)
 
+fileOrder = 3
 for root, dirs, files in os.walk(os.getcwd()):
     if 'columns' in root:
         continue
@@ -36,7 +38,7 @@ for root, dirs, files in os.walk(os.getcwd()):
 
     if len(datfiles) == 0:
         continue
-
+    #fileOrder = math.ceil(math.log10(len(datfiles)))
     print(os.getcwd())
     for file in datfiles:
         basename = os.path.splitext(os.path.basename(file))[0]
@@ -89,12 +91,12 @@ for root, dirs, files in os.walk(os.getcwd()):
 
                 for counter in filtCols: #removing unused counters
                     if 'mon_' in counter or 'ion_1' in counter:
-                        if np.max(dfFilteredDct[spectrum_count][counter].values) < 1000*timeStep:
+                        if np.max(dfFilteredDct[spectrum_count][counter].values) < 10000*timeStep:
                             dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
     
 
-                newfile = f'{newdir}/{basename}_{spectrum_count:02d}.dat'
-                newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:02d}.dat'
+                newfile = f'{newdir}/{basename}_{spectrum_count:0{fileOrder}d}.dat'
+                newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:0{fileOrder}d}.dat'
                 if len([col for col in dfFilteredDct[spectrum_count].columns if 'mon_' in col]) == 0:
                     if os.path.exists(newfilerg):
                         os.remove(newfilerg)
@@ -127,7 +129,7 @@ for root, dirs, files in os.walk(os.getcwd()):
         no_tries = 6
         for c in dfFilteredDct:
 
-            newfilerg = f'{newdir}regrid/{basename}_{c:02d}.dat'
+            newfilerg = f'{newdir}regrid/{basename}_{c:0{fileOrder}d}.dat'
             regridDF = pd.DataFrame()
             if len([col for col in dfFilteredDct[c].columns if 'mon_' in col]) == 0:
                 continue
@@ -150,7 +152,7 @@ for root, dirs, files in os.walk(os.getcwd()):
                     regridDF.index = grid
                     regridDF.index.name = 'energy_offset(keV)'
                     if n != 0:
-                        print(f'spectrum {c} ZEmin = {ZEmin}, ZEmax {ZEmax}')
+                        print(f'{file} spectrum {c} ZEmin = {ZEmin}, ZEmax {ZEmax}')
                     break
                 except ValueError as e:
                     if 'below' in str(e):
