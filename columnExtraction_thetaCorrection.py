@@ -16,6 +16,9 @@ charge = 1.60217663e-19
 speedOfLight = 299792458
 
 fluoCounter = 'xmap_roi00'
+monPattern = 'mon_'
+ion1Pattern = 'ion_1'
+
 counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
 counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
 
@@ -25,7 +28,7 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
     return np.round(energy_kev,6)
 
-fileOrder = 3
+digits = 3
 for root, dirs, files in os.walk(os.getcwd()):
     if 'columns' in root:
         continue
@@ -38,7 +41,7 @@ for root, dirs, files in os.walk(os.getcwd()):
 
     if len(datfiles) == 0:
         continue
-    #fileOrder = math.ceil(math.log10(len(datfiles)))
+    #digits = math.ceil(math.log10(len(datfiles)))
     print(os.getcwd())
     for file in datfiles:
         basename = os.path.splitext(os.path.basename(file))[0]
@@ -90,14 +93,14 @@ for root, dirs, files in os.walk(os.getcwd()):
                 dfFilteredDct[spectrum_count].set_index('ZapEnergy_offset',inplace = True)
 
                 for counter in filtCols: #removing unused counters
-                    if 'mon_' in counter or 'ion_1' in counter:
+                    if monPattern in counter or ion1Pattern in counter:
                         if np.max(dfFilteredDct[spectrum_count][counter].values) < 10000*timeStep:
                             dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
     
 
-                newfile = f'{newdir}/{basename}_{spectrum_count:0{fileOrder}d}.dat'
-                newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:0{fileOrder}d}.dat'
-                if len([col for col in dfFilteredDct[spectrum_count].columns if 'mon_' in col]) == 0:
+                newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
+                newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:0{digits}d}.dat'
+                if len([col for col in dfFilteredDct[spectrum_count].columns if monPattern in col]) == 0:
                     if os.path.exists(newfilerg):
                         os.remove(newfilerg)
                     if os.path.exists(newfile):
@@ -126,12 +129,12 @@ for root, dirs, files in os.walk(os.getcwd()):
         ZEmin = 0
         ZEmax = -1
         #os.chdir(f'{newdir}regrid/')
-        no_tries = 6
+        no_tries = 5
         for c in dfFilteredDct:
 
-            newfilerg = f'{newdir}regrid/{basename}_{c:0{fileOrder}d}.dat'
+            newfilerg = f'{newdir}regrid/{basename}_{c:0{digits}d}.dat'
             regridDF = pd.DataFrame()
-            if len([col for col in dfFilteredDct[c].columns if 'mon_' in col]) == 0:
+            if len([col for col in dfFilteredDct[c].columns if monPattern in col]) == 0:
                 continue
             for n in range(no_tries):
                 
@@ -144,7 +147,7 @@ for root, dirs, files in os.walk(os.getcwd()):
                             os.remove(newfilerg)
                         break
                     for counter in dfFilteredDct[c].columns:
-                        if 'mon' in counter or 'ion_1' in counter or fluoCounter in counter:
+                        if monPattern in counter or ion1Pattern in counter or fluoCounter in counter:
                             gridfunc = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c][counter].values)
                             regridDF[counter] = gridfunc(grid).round(1)
 

@@ -7,9 +7,9 @@ import pandas as pd
 direc = r'Z:\visitor\ch6617\bm31\20230329/'
 os.chdir(direc)
 
-
 fluorescenceCounter = 'xmap_roi00'
-
+monPattern = 'mon_'
+ion1Pattern = 'ion_1'
 
 def normalise(ds,group, kev = True):
     '''
@@ -65,15 +65,15 @@ for root,dirs,files in os.walk(os.getcwd()):
                 if fluorescenceCounter in df0.columns:
                     dfFluo = pd.DataFrame()
                     dfFluo.index = df0.index
-                if len([col for col in df0.columns if 'ion_1' in col]) == 0:
+                if len([col for col in df0.columns if ion1Pattern in col]) == 0:
                     transmission = False
                 else:
                     transmission = True
-                    i1_counter = [col for col in df0.columns if 'ion_1' in col][0]
+                    i1_counter = [col for col in df0.columns if ion1Pattern in col][0]
                 dfTrans = pd.DataFrame()
                 dfTrans.index = df0.index
             df = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0)
-            mon_counter = [col for col in df.columns if 'mon_' in col][0]
+            mon_counter = [col for col in df.columns if monPattern in col][0]
 
                 
             E = df.index.values
