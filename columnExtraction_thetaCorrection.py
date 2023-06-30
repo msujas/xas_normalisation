@@ -5,7 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 #import math
 
-direc = r'Z:\visitor\ch6617\bm31\20230329/'
+direc = r'Z:\visitor\a311195\bm31\20230626\pylatus\standards'
 os.chdir(direc)
 thetaOffset = 0
 
@@ -110,6 +110,7 @@ for root, dirs, files in os.walk(os.getcwd()):
                 f.write(newstring)
                 f.close()
                 dfFilteredDct[spectrum_count].to_csv(newfile,sep = ' ',mode = 'a')
+                print(newfile)
                 f2 = open(newfilerg,'w')
                 f2.write(newstring)
                 f2.close()
@@ -122,14 +123,14 @@ for root, dirs, files in os.walk(os.getcwd()):
         ZE = dfFilteredDct[ZEkey].index.values
 
 
-        diffs = np.array([ZE[i]-ZE[i-1] for i in range(1,len(ZE))])
-        spacing = np.mean(diffs).round(4)
+
+        spacing = np.round((ZE[-1] - ZE[0])/(len(ZE)-1),6)
 
 
         ZEmin = 0
         ZEmax = -1
         #os.chdir(f'{newdir}regrid/')
-        no_tries = 5
+        no_tries = 7
         for c in dfFilteredDct:
 
             newfilerg = f'{newdir}regrid/{basename}_{c:0{digits}d}.dat'
