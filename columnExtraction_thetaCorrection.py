@@ -5,7 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 #import math
 
-direc = r'Z:\visitor\a311195\bm31\20230626\pylatus\standards'
+direc = r'Z:\visitor\a311195\bm31\20230626\pylatus'
 os.chdir(direc)
 thetaOffset = 0
 
