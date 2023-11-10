@@ -35,10 +35,7 @@ while True:
                 repeat = True
                 print(f'running column extraction on {file}')
                 #newfileDct = columnExtraction_thetaCorrection.run(root,thetaOffset)
-                columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, columnExtraction_thetaCorrection.fluoCounter,
-                                                             columnExtraction_thetaCorrection.counterNames, columnExtraction_thetaCorrection.counterNames_NF,
-                                                             columnExtraction_thetaCorrection.monPattern, columnExtraction_thetaCorrection.ion1Pattern,
-                                                             thetaOffset,digits=4)
+                columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset)
                 columnDir = os.path.basename(file).replace('.dat','')
                 print(f'running normalisation in {root}/columns/{columnDir}')
                 xasNormalisation.run(f'{root}/columns/{columnDir}')

@@ -27,7 +27,7 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
     return np.round(energy_kev,6)
 
-def processFile(file, fileDct, currentdir, fluoCounter,counterNames, counterNames_NF,monPattern, ion1Pattern, thetaOffset,digits=4):
+def processFile(file, fileDct, currentdir, thetaOffset):
     fileDct[file] = os.path.getmtime(file)
     basename = os.path.splitext(os.path.basename(file))[0]
     if not os.path.exists(currentdir+'columns/'):
@@ -178,7 +178,7 @@ def run(direc,thetaOffset=0):
         #digits = math.ceil(math.log10(len(datfiles)))
         print(os.getcwd())
         for file in datfiles:
-            processFile(file, fileDct, currentdir, fluoCounter,counterNames, counterNames_NF,monPattern, ion1Pattern, thetaOffset,digits)
+            processFile(file, fileDct, currentdir,  thetaOffset)
     return fileDct
 
 if __name__ == '__main__':
