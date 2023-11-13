@@ -31,11 +31,14 @@ while True:
         datfiles = glob('*.dat')
         datfiles = [currentdir + file for file in datfiles]
         for file in datfiles:
-            if file not in list(fileDct.keys()) or os.path.getmtime(file) != fileDct[file]:
+            if file not in list(fileDct.keys()) or os.path.getmtime(file) != fileDct[file][0]:
+                if file not in list(fileDct.keys()):
+                    startSpectrum = 0
+                else:
+                    startSpectrum = fileDct[file][1]
                 repeat = True
                 print(f'running column extraction on {file}')
-                #newfileDct = columnExtraction_thetaCorrection.run(root,thetaOffset)
-                columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset)
+                columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)
                 columnDir = os.path.basename(file).replace('.dat','')
                 print(f'running normalisation in {root}/columns/{columnDir}')
                 xasNormalisation.run(f'{root}/columns/{columnDir}')

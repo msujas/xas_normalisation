@@ -27,8 +27,8 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
     return np.round(energy_kev,6)
 
-def processFile(file, fileDct, currentdir, thetaOffset):
-    fileDct[file] = os.path.getmtime(file)
+def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
+    filemtime = os.path.getmtime(file)
     basename = os.path.splitext(os.path.basename(file))[0]
     if not os.path.exists(currentdir+'columns/'):
         os.makedirs(currentdir+'columns/')
@@ -50,6 +50,8 @@ def processFile(file, fileDct, currentdir, thetaOffset):
             newstring = ''
             newstring += line
             spectrum_count += 1
+            if spectrum_count < startSpectrum:
+                continue
             onscan = True
 
         elif '#T' in line and onscan:
@@ -99,6 +101,7 @@ def processFile(file, fileDct, currentdir, thetaOffset):
             f2 = open(newfilerg,'w')
             f2.write(newstring)
             f2.close()
+    fileDct[file] = [filemtime,spectrum_count]
     if len(dfFilteredDct) == 0:
         return
     ZElens = [len(dfFilteredDct[c].index.values) for c in dfFilteredDct]
