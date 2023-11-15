@@ -8,7 +8,7 @@ import os
 from glob import glob
 import time
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222/'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222'
 thetaOffset = 0
 waitTime = 1
 
@@ -35,10 +35,12 @@ while True:
                 if file not in list(fileDct.keys()):
                     startSpectrum = 0
                 else:
-                    startSpectrum = fileDct[file][1]
+                    startSpectrum = fileDct[file][1]+1
                 repeat = True
                 print(f'running column extraction on {file}')
                 columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)
+                basename = os.path.splitext(os.path.basename(file))[0]
+                columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}')
                 columnDir = os.path.basename(file).replace('.dat','')
                 print(f'running normalisation in {root}/columns/{columnDir}')
                 xasNormalisation.run(f'{root}/columns/{columnDir}')

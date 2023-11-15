@@ -75,7 +75,7 @@ def run(direc):
                         i1_counter = [col for col in df0.columns if ion1Pattern in col][0]
                     dfTrans = pd.DataFrame()
                     dfTrans.index = df0.index
-                df = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0)
+                df = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0, header = 0)
                 mon_counter = [col for col in df.columns if monPattern in col][0]
 
                     

@@ -1,9 +1,9 @@
-import os
+import os, re
 from glob import glob
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
-#import math
+
 
 direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222'
 thetaOffset = 0
@@ -32,7 +32,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     basename = os.path.splitext(os.path.basename(file))[0]
     if not os.path.exists(currentdir+'columns/'):
         os.makedirs(currentdir+'columns/')
-    newdir = f'columns/{basename}/'
+    newdir = f'{currentdir}/columns/{basename}/'
     if not os.path.exists(newdir):
         os.makedirs(newdir)
     if not os.path.exists(f'{newdir}/regrid/'):
@@ -81,15 +81,17 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
             for counter in filtCols: #removing unused counters
                 if monPattern in counter or ion1Pattern in counter:
-                    if np.max(dfFilteredDct[spectrum_count][counter].values) < 10000*timeStep:
+                    if np.max(dfFilteredDct[spectrum_count][counter].values) < 1000*timeStep:
                         dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
+            if np.max(dfFilteredDct[spectrum_count][fluoCounter].values) < 10:
+                dfFilteredDct[spectrum_count].drop(fluoCounter,axis = 1,inplace = True)
 
 
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-            newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:0{digits}d}.dat'
+            #newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:0{digits}d}.dat'
             if len([col for col in dfFilteredDct[spectrum_count].columns if monPattern in col]) == 0:
-                if os.path.exists(newfilerg):
-                    os.remove(newfilerg)
+                #if os.path.exists(newfilerg):
+                #    os.remove(newfilerg)
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
@@ -98,12 +100,31 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             f.close()
             dfFilteredDct[spectrum_count].to_csv(newfile,sep = ' ',mode = 'a')
             print(newfile)
-            f2 = open(newfilerg,'w')
-            f2.write(newstring)
-            f2.close()
+            #f2 = open(newfilerg,'w')
+            #f2.write(newstring)
+            #f2.close()
     fileDct[file] = [filemtime,spectrum_count]
-    if len(dfFilteredDct) == 0:
+    
+
+def regrid(coldir):
+    print(coldir)
+    files = glob(f'{coldir}/*.dat')
+    if len(files) == 0:
         return
+    pattern = '_'
+    for n in range(digits):
+        pattern += '[0-9]'
+    pattern += '.dat'
+    basename = re.sub(pattern,'',os.path.basename(files[0]))
+    dfFilteredDct = {}
+    headers = []
+    for c,file in enumerate(files):
+        dfFilteredDct[c] = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
+        f = open(file,'r')
+        lines = f.readlines()
+        f.close()
+        header = ''.join([line for line in lines if '#' in line])
+        headers.append(header)
     ZElens = [len(dfFilteredDct[c].index.values) for c in dfFilteredDct]
 
     ZEindex = ZElens.index(max(ZElens))
@@ -121,7 +142,11 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     no_tries = 50
     for c in dfFilteredDct:
 
-        newfilerg = f'{newdir}regrid/{basename}_{c:0{digits}d}.dat'
+        newfilerg = f'{coldir}/regrid/{basename}_{c:0{digits}d}.dat'
+
+        f = open(newfilerg,'w')
+        f.write(headers[c])
+        f.close()
         regridDF = pd.DataFrame()
         if len([col for col in dfFilteredDct[c].columns if monPattern in col]) == 0:
             continue
@@ -182,6 +207,10 @@ def run(direc,thetaOffset=0):
         print(os.getcwd())
         for file in datfiles:
             processFile(file, fileDct, currentdir,  thetaOffset)
+            basename = os.path.splitext(os.path.basename(file))[0]
+
+            regrid(f'{currentdir}columns/{basename}')
+            
     return fileDct
 
 if __name__ == '__main__':
