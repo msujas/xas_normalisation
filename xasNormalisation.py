@@ -1,7 +1,7 @@
 from larch.xafs import find_e0, pre_edge
 from larch import Group
 import numpy as np
-import os
+import os, re
 import pandas as pd
 
 direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222'
@@ -149,7 +149,7 @@ def run(direc):
                 if np.max(dfmergeTrans.values) - np.min(dfmergeTrans.values) > 0.1: #checking to see if data is real
                     groupTmerge = Group()
                     normalise(dfmergeTrans,groupTmerge)
-                    basefileTmerge = file.replace('.dat','T.nor')
+                    basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T.nor',file)
                     fileTmerge = f'merge/{basefileTmerge}'
                     np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
             if fluorescenceCounter in df0.columns:
@@ -159,7 +159,7 @@ def run(direc):
                 if np.max(dfmergeFluo.values) - np.min(dfmergeFluo.values) > 0.1:
                     groupFmerge = Group()
                     normalise(dfmergeFluo,groupFmerge)
-                    basefileFmerge = file.replace('.dat','F.nor')
+                    basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F.nor',file)
                     fileFmerge = f'merge/{basefileFmerge}'
                     np.savetxt(fileFmerge,np.array([groupFmerge.energy,groupFmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
 if __name__ == '__main__':
