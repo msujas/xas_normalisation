@@ -117,13 +117,14 @@ def regrid(coldir):
     dfFilteredDct = {}
     headers = []
     for c,file in enumerate(files):
-        dfFilteredDct[c] = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
+        basefile = os.path.basename(file)
+        dfFilteredDct[basefile] = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
         f = open(file,'r')
         lines = f.readlines()
         f.close()
         header = ''.join([line for line in lines if '#' in line])
         headers.append(header)
-    ZElens = [len(dfFilteredDct[c].index.values) for c in dfFilteredDct]
+    ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct]
 
     ZEindex = ZElens.index(max(ZElens))
     ZEkey = list(dfFilteredDct.keys())[ZEindex]
@@ -138,36 +139,36 @@ def regrid(coldir):
     ZEmax = -1
     #os.chdir(f'{newdir}regrid/')
     no_tries = 50
-    for c in dfFilteredDct:
+    for c, file in enumerate(dfFilteredDct):
 
-        newfilerg = f'{coldir}/regrid/{basename}_{c:0{digits}d}.dat'
+        newfilerg = f'{coldir}/regrid/{file}'
 
         f = open(newfilerg,'w')
         f.write(headers[c])
         f.close()
         regridDF = pd.DataFrame()
-        if len([col for col in dfFilteredDct[c].columns if monPattern in col]) == 0:
+        if len([col for col in dfFilteredDct[file].columns if monPattern in col]) == 0:
             continue
         for n in range(no_tries):
             
             try:
                 grid = np.arange(ZE[ZEmin].round(4),ZE[ZEmax].round(5),spacing)
                 grid = grid.round(5)
-                if len(dfFilteredDct[c].index.values) < len(grid) - no_tries + 1:
-                    print(f'{file} spectrum {c} too short, couldn\'t be regridded')
+                if len(dfFilteredDct[file].index.values) < len(grid) - no_tries + 1:
+                    print(f'{basename} spectrum {c} too short, couldn\'t be regridded')
                     if os.path.exists(newfilerg):
                         os.remove(newfilerg)
                     break
-                for counter in dfFilteredDct[c].columns:
+                for counter in dfFilteredDct[file].columns:
                     if monPattern in counter or ion1Pattern in counter or fluoCounter in counter:
-                        gridfunc = interp1d(dfFilteredDct[c].index.values,dfFilteredDct[c][counter].values)
+                        gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
                         regridDF[counter] = gridfunc(grid).round(1)
 
                 
                 regridDF.index = grid
                 regridDF.index.name = 'energy_offset(keV)'
                 if n != 0:
-                    print(f'{file} spectrum {c} ZEmin = {ZEmin}, ZEmax {ZEmax}')
+                    print(f'{basename} spectrum {c} ZEmin = {ZEmin}, ZEmax {ZEmax}')
                 break
             except ValueError as e:
                 if 'below' in str(e):
@@ -175,7 +176,7 @@ def regrid(coldir):
                 elif 'above' in str(e):
                     ZEmax -= 1
                 if n == no_tries - 1:
-                    print(f'{file} spectrum {c} too short, couldn\'t be regridded')
+                    print(f'{basename} spectrum {c} too short, couldn\'t be regridded')
                     if os.path.exists(newfilerg):
                         os.remove(newfilerg)
         if len(regridDF.columns) == 0:
@@ -187,7 +188,7 @@ def regrid(coldir):
 def run(direc,thetaOffset=0):
 
     os.chdir(direc)
-    fileDct = {}
+    fileDct = {} #dictionary with files as keys, values: [modified time, last spectrum]
 
     for root, dirs, files in os.walk(os.getcwd()):
         if 'columns' in root:
