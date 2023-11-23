@@ -53,6 +53,7 @@ def run(direc):
                 os.makedirs('norm/')
 
             datfiles = [file for file in files if file.endswith('.dat')]
+            datfiles.sort()
             if len(datfiles) == 0:
                 continue
             print(root)

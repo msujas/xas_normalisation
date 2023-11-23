@@ -88,10 +88,9 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
 
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-            #newfilerg = f'{newdir}/regrid/{basename}_{spectrum_count:0{digits}d}.dat'
+
             if len([col for col in dfFilteredDct[spectrum_count].columns if monPattern in col]) == 0:
-                #if os.path.exists(newfilerg):
-                #    os.remove(newfilerg)
+
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
@@ -100,15 +99,14 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             f.close()
             dfFilteredDct[spectrum_count].to_csv(newfile,sep = ' ',mode = 'a')
             print(newfile)
-            #f2 = open(newfilerg,'w')
-            #f2.write(newstring)
-            #f2.close()
+
     fileDct[file] = [filemtime,spectrum_count]
     
 
 def regrid(coldir):
     print(coldir)
     files = glob(f'{coldir}/*.dat')
+    files.sort()
     if len(files) == 0:
         return
     pattern = '_'
