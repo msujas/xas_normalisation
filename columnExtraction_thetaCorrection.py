@@ -28,6 +28,11 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     return np.round(energy_kev,6)
 
 def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
+    f = open(file,'r')
+    data = f.read()
+    f.close()
+    if not 'zapline' in data:
+        return
     filemtime = os.path.getmtime(file)
     basename = os.path.splitext(os.path.basename(file))[0]
     if not os.path.exists(currentdir+'columns/'):
@@ -104,6 +109,8 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     
 
 def regrid(coldir):
+    if not os.path.exists(coldir):
+        return
     print(coldir)
     files = glob(f'{coldir}/*.dat')
     files.sort()
