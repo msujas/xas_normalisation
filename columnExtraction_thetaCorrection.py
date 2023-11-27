@@ -162,7 +162,7 @@ def regrid(coldir):
                 grid = np.arange(ZE[ZEmin].round(4),ZE[ZEmax].round(5),spacing)
                 grid = grid.round(5)
                 if len(dfFilteredDct[file].index.values) < len(grid) - no_tries + 1:
-                    print(f'{basename} spectrum {c} too short, couldn\'t be regridded')
+                    print(f'{file} too short, couldn\'t be regridded')
                     if os.path.exists(newfilerg):
                         os.remove(newfilerg)
                     break
@@ -175,7 +175,7 @@ def regrid(coldir):
                 regridDF.index = grid
                 regridDF.index.name = 'energy_offset(keV)'
                 if n != 0:
-                    print(f'{basename} spectrum {c} ZEmin = {ZEmin}, ZEmax {ZEmax}')
+                    print(f'{file} spectrum ZEmin = {ZEmin}, ZEmax {ZEmax}')
                 break
             except ValueError as e:
                 if 'below' in str(e):
@@ -183,7 +183,7 @@ def regrid(coldir):
                 elif 'above' in str(e):
                     ZEmax -= 1
                 if n == no_tries - 1:
-                    print(f'{basename} spectrum {c} too short, couldn\'t be regridded')
+                    print(f'{file} spectrum too short, couldn\'t be regridded')
                     if os.path.exists(newfilerg):
                         os.remove(newfilerg)
         if len(regridDF.columns) == 0:
