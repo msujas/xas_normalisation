@@ -37,6 +37,8 @@ def normalise(ds,group, kev = True):
              norm1 = post1*scale, norm2=post2*scale, nnorm = nnorm)
 
 def run(direc):
+    if not os.path.exists(direc):
+        return
     os.chdir(direc)
 
     fluorescenceCounter = 'xmap_roi00'

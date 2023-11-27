@@ -31,9 +31,11 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     f = open(file,'r')
     data = f.read()
     f.close()
-    if not 'zapline' in data:
-        return
     filemtime = os.path.getmtime(file)
+    if not 'zapline' in data:
+        fileDct[file] = [filemtime,-1]
+        return
+    
     basename = os.path.splitext(os.path.basename(file))[0]
     if not os.path.exists(currentdir+'columns/'):
         os.makedirs(currentdir+'columns/')

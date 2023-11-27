@@ -42,7 +42,9 @@ while True:
                 basename = os.path.splitext(os.path.basename(file))[0]
                 columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}')
                 columnDir = os.path.basename(file).replace('.dat','')
-                print(f'running normalisation in {root}/columns/{columnDir}')
-                xasNormalisation.run(f'{root}/columns/{columnDir}')
+                normdir = f'{root}/columns/{columnDir}'
+                if os.path.exists(normdir):
+                    print(f'running normalisation in {root}/columns/{columnDir}')
+                    xasNormalisation.run(f'{root}/columns/{columnDir}')
 
     time.sleep(waitTime)
