@@ -4,7 +4,7 @@ import numpy as np
 import os, re
 import pandas as pd
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311231\Fl-CrFoil_Cr_exafs\regrid'
 
 
 
@@ -65,9 +65,7 @@ def run(direc):
                 header = ''.join(f.readlines()[:2]).replace('#','')
                 f.close()
                 if c == 0:
-
                     df0 = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0)
-
                     if fluorescenceCounter in df0.columns:
                         dfFluo = pd.DataFrame()
                         dfFluo.index = df0.index
@@ -115,7 +113,7 @@ def run(direc):
 
                         E = df.index.values
         
-                if fluorescenceCounter in df0.columns:
+                if fluorescenceCounter in df.columns:
             
                     muFluo = df[fluorescenceCounter].values/df[mon_counter].values
                     dfFluo[c] = muFluo

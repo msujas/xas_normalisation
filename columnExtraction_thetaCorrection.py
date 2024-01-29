@@ -96,7 +96,8 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
 
-            if len([col for col in dfFilteredDct[spectrum_count].columns if monPattern in col]) == 0:
+            if len([col for col in dfFilteredDct[spectrum_count].columns if monPattern in col]) == 0 or\
+                len([col for col in dfFilteredDct[spectrum_count].columns if fluoCounter in col or ion1Pattern in col ]) == 0:
 
                 if os.path.exists(newfile):
                     os.remove(newfile)
