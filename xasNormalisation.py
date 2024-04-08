@@ -4,11 +4,11 @@ import numpy as np
 import os, re
 import pandas as pd
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311231\Fl-CrFoil_Cr_exafs\regrid'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222\Ex_Situ_231105\columns\CHE34_fresh_Re_xanes\regrid'
 
 
 
-def normalise(ds,group, kev = True):
+def normalise(ds, kev = True):
     '''
     The normalisation orders seem to be different between Athena and Larch. 
     1 and 2 in Larch seem to correspond to 2 and 3 in Athena (linear and quadratic), respectively. 0 Seems not to correspond to 1, however.
@@ -16,25 +16,25 @@ def normalise(ds,group, kev = True):
     The values used in this are roughly the same as the defaults
     Some distributions of Larch don't normalise data properly in keV, so data is converted to eV for normalising
     '''
-    group.energy = ds.index.values
-    group.mu = ds.values
-
-    find_e0(group = group, energy = group.energy, mu = group.mu)
-    pre1 = group.energy[0] - group.e0
-    pre2 = -0.02
-    if group.energy[-1] - group.energy[0] > 0.5: #EXAFS
-        post1 = 0.15
-        nnorm = 2 
-    else: #XANES
-        post1 = 0.065
-        nnorm = 1
-    post2 = group.energy[-1] - group.e0
     if kev: #converting axis to eV
         scale = 1000
     else:
         scale = 1
-    pre_edge(group = group,energy = group.energy*scale, mu = group.mu, e0 = group.e0*scale, pre1=pre1*scale,pre2=pre2*scale,
-             norm1 = post1*scale, norm2=post2*scale, nnorm = nnorm)
+    group = Group(energy = ds.index.values*scale, mu = ds.values)
+    
+    find_e0(group = group, energy = group.energy, mu = group.mu)
+    pre1 = group.energy[0] - group.e0
+    pre2 = -30
+    if group.energy[-1] - group.energy[0] > 500: #EXAFS
+        post1 = 150
+        nnorm = 2 
+    else: #XANES
+        post1 = 65
+        nnorm = 1
+    post2 = group.energy[-1] - group.e0
+    pre_edge(group = group,energy = group.energy, mu = group.mu, e0 = group.e0, pre1=pre1,pre2=pre2,
+             norm1 = post1, norm2=post2, nnorm = nnorm)
+    return group
 
 def run(direc):
     if not os.path.exists(direc):
@@ -51,9 +51,10 @@ def run(direc):
         os.chdir(root)
         if not os.path.exists('merge/'):
             os.makedirs('merge/')
-        if not os.path.exists('norm/'):
-            os.makedirs('norm/')
-
+        if not os.path.exists('norm/trans'):
+            os.makedirs('norm/trans')
+        if not os.path.exists('norm/fluo'):
+            os.makedirs('norm/fluo')
         datfiles = [file for file in files if file.endswith('.dat')]
         datfiles.sort()
         if len(datfiles) == 0:
@@ -65,7 +66,7 @@ def run(direc):
             header = ''.join(f.readlines()[:2]).replace('#','')
             f.close()
             if c == 0:
-                df0 = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0)
+                df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
                 if fluorescenceCounter in df0.columns:
                     dfFluo = pd.DataFrame()
                     dfFluo.index = df0.index
@@ -76,7 +77,7 @@ def run(direc):
                     i1_counter = [col for col in df0.columns if ion1Pattern in col][0]
                 dfTrans = pd.DataFrame()
                 dfTrans.index = df0.index
-            df = pd.read_csv(file,sep = '\s',comment = '#',index_col = 0, header = 0)
+            df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
             mon_counter = [col for col in df.columns if monPattern in col][0]
 
                 
@@ -120,10 +121,9 @@ def run(direc):
                 ds = pd.Series(index = dfFluo.index,data = muFluo)
 
                 if np.max(df[mon_counter].values) > 500 and np.max(df[fluorescenceCounter].values) > 10: #filtering out bad data
-                    groupF = Group()
-                    normalise(ds,groupF)
+                    groupF = normalise(ds)
                     basefileF = file.replace('.dat','F.nor')
-                    fileF = f'norm/{basefileF}'
+                    fileF = f'norm/fluo/{basefileF}'
 
                     np.savetxt(fileF,np.array([E,groupF.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
 
@@ -135,10 +135,9 @@ def run(direc):
                     if np.max(df[mon_counter].values) < 500:
                         continue
                     ds = pd.Series(index = dfTrans.index,data = muTrans)
-                    groupT = Group()
-                    normalise(ds,groupT)
+                    groupT = normalise(ds)
                     basefileT = file.replace('.dat','T.nor')
-                    fileT = f'norm/{basefileT}'
+                    fileT = f'norm/trans/{basefileT}'
                     np.savetxt(fileT,np.array([E,groupT.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
                 except KeyError:
                     print(f'transmission too low in {file}')
@@ -147,8 +146,7 @@ def run(direc):
             dfmergeTrans.name = 'mu'
             dfmergeTrans.to_csv('merge/transMerge.dat',sep = ' ')
             if np.max(dfmergeTrans.values) - np.min(dfmergeTrans.values) > 0.1: #checking to see if data is real
-                groupTmerge = Group()
-                normalise(dfmergeTrans,groupTmerge)
+                groupTmerge = normalise(dfmergeTrans)
                 basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T.nor',file)
                 fileTmerge = f'merge/{basefileTmerge}'
                 np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
@@ -157,8 +155,7 @@ def run(direc):
             dfmergeFluo.name = 'mu'
             dfmergeFluo.to_csv('merge/fluoMerge.dat', sep = ' ')
             if np.max(dfmergeFluo.values) - np.min(dfmergeFluo.values) > 0.1:
-                groupFmerge = Group()
-                normalise(dfmergeFluo,groupFmerge)
+                groupFmerge = normalise(dfmergeFluo)
                 basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F.nor',file)
                 fileFmerge = f'merge/{basefileFmerge}'
                 np.savetxt(fileFmerge,np.array([groupFmerge.energy,groupFmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
