@@ -1,3 +1,7 @@
 deleteFiles.py
 *.dat
 .ipynb_checkpoints
+ascan.py
+lastDirectory.log
+larchPlot.py
+__pycache__

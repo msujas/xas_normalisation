@@ -8,7 +8,7 @@ direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222\Ex_Situ_231105\colum
 
 
 
-def normalise(ds, kev = True):
+def normalise(ds):
     '''
     The normalisation orders seem to be different between Athena and Larch. 
     1 and 2 in Larch seem to correspond to 2 and 3 in Athena (linear and quadratic), respectively. 0 Seems not to correspond to 1, however.
@@ -16,11 +16,16 @@ def normalise(ds, kev = True):
     The values used in this are roughly the same as the defaults
     Some distributions of Larch don't normalise data properly in keV, so data is converted to eV for normalising
     '''
+    energy = ds.index.values
+    if np.max(energy) < 1000:
+        kev = True
+    else:
+        kev = False
     if kev: #converting axis to eV
         scale = 1000
     else:
         scale = 1
-    group = Group(energy = ds.index.values*scale, mu = ds.values)
+    group = Group(energy = energy*scale, mu = ds.values)
     
     find_e0(group = group, energy = group.energy, mu = group.mu)
     pre1 = group.energy[0] - group.e0
