@@ -4,17 +4,19 @@ import numpy as np
 import os, re
 import pandas as pd
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222\Ex_Situ_231105\columns\CHE34_fresh_Re_xanes\regrid'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311231\Fl-CrFoil_Cr_exafs\regrid'
 
 
 
 def normalise(ds):
     '''
+    Takes a pandas Series with values as mu and index as energy as an argument.
     The normalisation orders seem to be different between Athena and Larch. 
     1 and 2 in Larch seem to correspond to 2 and 3 in Athena (linear and quadratic), respectively. 0 Seems not to correspond to 1, however.
     0 appears linear, but with a shallower gradient than 1. The documentation recommends 0 if < 50 eV used to fit post-edge.
     The values used in this are roughly the same as the defaults
-    Some distributions of Larch don't normalise data properly in keV, so data is converted to eV for normalising
+    Some distributions of Larch don't normalise data properly in keV, so data is converted to eV for normalising.
+    Returns a Larch Group object with e0 and normalisation calculated.
     '''
     energy = ds.index.values
     if np.max(energy) < 1000:
@@ -32,7 +34,7 @@ def normalise(ds):
     pre2 = -30
     if group.energy[-1] - group.energy[0] > 500: #EXAFS
         post1 = 150
-        nnorm = 2 
+        nnorm = 3
     else: #XANES
         post1 = 65
         nnorm = 1
