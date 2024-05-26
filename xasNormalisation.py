@@ -4,7 +4,7 @@ import numpy as np
 import os, re
 import pandas as pd
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311231\Fl-CrFoil_Cr_exafs\regrid'
+direc = r''
 
 
 

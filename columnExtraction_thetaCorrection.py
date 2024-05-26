@@ -92,7 +92,12 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
                         dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
             if np.max(dfFilteredDct[spectrum_count][fluoCounter].values) < 10:
                 dfFilteredDct[spectrum_count].drop(fluoCounter,axis = 1,inplace = True)
-
+            if len([col for col in dfFilteredDct[spectrum_count] if monPattern in col]) > 1:
+                dfMondct = dfFilteredDct[[col for col in dfFilteredDct if monPattern in col]]
+                dfFilteredDct = dfFilteredDct.drop(columns=[dfMondct.mean().sort_values().index[:-1]])
+            if len([col for col in dfFilteredDct[spectrum_count] if ion1Pattern in col]) > 1:
+                dfi1dct = dfFilteredDct[[col for col in dfFilteredDct if ion1Pattern in col]]
+                dfFilteredDct = dfFilteredDct.drop(columns=[dfi1dct.mean().sort_values().index[:-1]])         
 
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
 
