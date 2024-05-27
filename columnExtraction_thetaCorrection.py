@@ -5,7 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6989'
 thetaOffset = 0
 
 
@@ -48,10 +48,9 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
 
     f = open(file,'r')
-    lines = f.readlines()
-    f.close()
+    scanStart = False
     onscan = False
-    for c,line in enumerate(lines):
+    for c,line in enumerate(f):
         if '#S' in line and 'zapline' in line:
             newstring = ''
             newstring += line
@@ -67,14 +66,27 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
         elif '#L' in line:
             dfstart = c +1
             columns = line.replace('#L ','').split()
+            scanStart = True
+            
+            lineno = 0
+        elif scanStart and '#' not in line:
+
+            lineSplit = np.array([np.fromstring(line,sep = ' ')])
+            if lineno == 0:
+                array = np.array(lineSplit)
+            else:
+                array = np.append(array,lineSplit,axis = 0)
+            lineno += 1
         elif '#C' in line and onscan:
+            df = pd.DataFrame(data=array,columns=columns)
             dfend = c
+            scanStart = False
             onscan = False
             if dfend-dfstart <= 1:
                 continue
             
-            df = pd.read_csv(file, skiprows = dfstart, nrows = dfend - dfstart, delim_whitespace = True, header = None)
-            df.columns = columns
+            #df = pd.read_csv(file, skiprows = dfstart, nrows = dfend - dfstart, sep = '\s+', header = None)
+            #df.columns = columns
             if fluoCounter in columns:
                 filtCols = counterNames
             else:
@@ -105,9 +117,9 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
-            f = open(newfile,'w')
-            f.write(newstring)
-            f.close()
+            f2 = open(newfile,'w')
+            f2.write(newstring)
+            f2.close()
             dfFiltered.to_csv(newfile,sep = ' ',mode = 'a')
             print(newfile)
 
