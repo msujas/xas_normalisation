@@ -31,6 +31,8 @@ while True:
         datfiles = glob('*.dat')
         datfiles = [currentdir + file for file in datfiles]
         for file in datfiles:
+            if 'tempLog' in file:
+                continue
             if file not in list(fileDct.keys()) or os.path.getmtime(file) != fileDct[file][0]:
                 if file not in list(fileDct.keys()):
                     startSpectrum = 0
