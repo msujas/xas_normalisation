@@ -35,7 +35,7 @@ while True:
                 if file not in list(fileDct.keys()):
                     startSpectrum = 0
                 else:
-                    startSpectrum = fileDct[file][1]+1
+                    startSpectrum = fileDct[file][1]-1
                 repeat = True
                 print(f'running column extraction on {file}')
                 columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)

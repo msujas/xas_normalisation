@@ -51,7 +51,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     lines = f.readlines()
     f.close()
     onscan = False
-    dfFilteredDct = {}
+    #dfFilteredDct = {}
     for c,line in enumerate(lines):
         if '#S' in line and 'zapline' in line:
             newstring = ''
@@ -80,29 +80,29 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
                 filtCols = counterNames
             else:
                 filtCols = counterNames_NF
-            dfFilteredDct[spectrum_count] = df[filtCols].copy(deep=True)
-            #dfFilteredDct[spectrum_count].set_index('ZapEnergy',inplace = True)
-            dfFilteredDct[spectrum_count]['Theta_offset'] =  dfFilteredDct[spectrum_count]['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
-            dfFilteredDct[spectrum_count]['ZapEnergy_offset'] = dfFilteredDct[spectrum_count]['Theta_offset'].apply(angle_to_kev)
-            dfFilteredDct[spectrum_count].set_index('ZapEnergy_offset',inplace = True)
+            dfFiltered = df[filtCols].copy(deep=True)
+            #dfFiltered.set_index('ZapEnergy',inplace = True)
+            dfFiltered['Theta_offset'] =  dfFiltered['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
+            dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev)
+            dfFiltered.set_index('ZapEnergy_offset',inplace = True)
 
             for counter in filtCols: #removing unused counters
                 if monPattern in counter or ion1Pattern in counter:
-                    if np.max(dfFilteredDct[spectrum_count][counter].values) < 1000*timeStep:
-                        dfFilteredDct[spectrum_count].drop(counter,axis = 1,inplace = True)
-            if np.max(dfFilteredDct[spectrum_count][fluoCounter].values) < 10:
-                dfFilteredDct[spectrum_count].drop(fluoCounter,axis = 1,inplace = True)
-            if len([col for col in dfFilteredDct[spectrum_count] if monPattern in col]) > 1:
-                dfMondct = dfFilteredDct[[col for col in dfFilteredDct if monPattern in col]]
-                dfFilteredDct = dfFilteredDct.drop(columns=[dfMondct.mean().sort_values().index[:-1]])
-            if len([col for col in dfFilteredDct[spectrum_count] if ion1Pattern in col]) > 1:
-                dfi1dct = dfFilteredDct[[col for col in dfFilteredDct if ion1Pattern in col]]
-                dfFilteredDct = dfFilteredDct.drop(columns=[dfi1dct.mean().sort_values().index[:-1]])         
+                    if np.max(dfFiltered[counter].values) < 1000*timeStep:
+                        dfFiltered.drop(counter,axis = 1,inplace = True)
+            if np.max(dfFiltered[fluoCounter].values) < 10:
+                dfFiltered.drop(fluoCounter,axis = 1,inplace = True)
+            if len([col for col in dfFiltered if monPattern in col]) > 1:
+                dfMondct = dfFiltered[[col for col in dfFiltered if monPattern in col]]
+                dfFiltered = dfFiltered.drop(columns=[dfMondct.mean().sort_values().index[:-1]])
+            if len([col for col in dfFiltered if ion1Pattern in col]) > 1:
+                dfi1dct = dfFiltered[[col for col in dfFiltered if ion1Pattern in col]]
+                dfFiltered = dfFiltered.drop(columns=[dfi1dct.mean().sort_values().index[:-1]])         
 
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
 
-            if len([col for col in dfFilteredDct[spectrum_count].columns if monPattern in col]) == 0 or\
-                len([col for col in dfFilteredDct[spectrum_count].columns if fluoCounter in col or ion1Pattern in col ]) == 0:
+            if len([col for col in dfFiltered.columns if monPattern in col]) == 0 or\
+                len([col for col in dfFiltered.columns if fluoCounter in col or ion1Pattern in col ]) == 0:
 
                 if os.path.exists(newfile):
                     os.remove(newfile)
@@ -110,7 +110,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             f = open(newfile,'w')
             f.write(newstring)
             f.close()
-            dfFilteredDct[spectrum_count].to_csv(newfile,sep = ' ',mode = 'a')
+            dfFiltered.to_csv(newfile,sep = ' ',mode = 'a')
             print(newfile)
 
     fileDct[file] = [filemtime,spectrum_count]
