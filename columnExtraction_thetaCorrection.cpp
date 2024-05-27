@@ -13,11 +13,14 @@ using namespace std;
 int main(int argc, char *argv[2]){
 float thetaOffset = 0;
 
-string file = "10_ramp_O2_to480C_Cu_xanes.dat";
+string file; 
 if (argc == 2){
-string file = argv[1];
+ file = argv[1];
 }
-string file2 = file;
+else {
+file = "10_ramp_O2_to480C_Cu_xanes.dat";
+}
+cout << argc << "\n" ;
 
 
 
