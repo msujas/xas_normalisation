@@ -73,20 +73,17 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
             lineSplit = np.array([np.fromstring(line,sep = ' ')])
             if lineno == 0:
-                array = np.array(lineSplit)
+                array = lineSplit
             else:
                 array = np.append(array,lineSplit,axis = 0)
             lineno += 1
         elif '#C' in line and onscan:
-            df = pd.DataFrame(data=array,columns=columns)
             dfend = c
             scanStart = False
             onscan = False
             if dfend-dfstart <= 1:
                 continue
-            
-            #df = pd.read_csv(file, skiprows = dfstart, nrows = dfend - dfstart, sep = '\s+', header = None)
-            #df.columns = columns
+            df = pd.DataFrame(data=array,columns=columns)
             if fluoCounter in columns:
                 filtCols = counterNames
             else:
