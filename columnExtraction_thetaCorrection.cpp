@@ -6,17 +6,20 @@ using namespace std;
 #include <fstream>
 #include <tuple>
 #include "columnExtractionFunctions.cpp"
-
+#include <filesystem>
 
 
 
 int main(int argc, char *argv[2]){
 float thetaOffset = 0;
 
-string file = "CuFoil_Cu_exafs.dat";
+string file = "10_ramp_O2_to480C_Cu_xanes.dat";
 if (argc == 2){
 string file = argv[1];
 }
+string file2 = file;
+string basefile = file2.replace(file.find(".dat"),4,"");
+filesystem::create_directory(basefile);
 
 
 string fluoCounter = "xmap_roi00";
@@ -35,28 +38,19 @@ for (int i = 0; i < counterNames.size(); i++){
 //tuple<vector<vector<float>> , vector<string>> arrayandHeaders = datToVector(file, counterNames);
 vector<vector<vector<float>>> allArrays;
 int noscans = getLastScan(file);
-vector<string> scanLines;
-vector<string> dtLines;
-string headerstring;
+
+
 for (int i=1; i < noscans+1; i++){
-auto  [dataArray, scanLine, dtLine, hstring] = datToVector(file, counterNames, i);
-headerstring = hstring;
-allArrays.push_back(dataArray);
-scanLines.push_back(scanLine);
-dtLines.push_back(dtLine);
-}
-string basefile = file.replace(file.find(".dat"),4,"");
-for (int i=0;i<allArrays.size();i++){
-    vector<vector<float>> tArray = transposeVector(allArrays[i]);
+    auto  [dataArray, scanLine, dtLine, hstring] = datToVector(file, counterNames, i);
+    vector<vector<float>> tArray = transposeVector(dataArray);
     ofstream outfile;
     string number = numberFormat(i,4);
     
-    string filename = basefile + "_" + number + ".dat";
+    string filename = basefile + "/"+ basefile + "_" + number + ".dat";
     cout << filename << "\n";
     outfile.open(filename);
-    outfile << scanLines[i] << "\n" << dtLines[i]<< "\n" << headerstring << "\n";
+    outfile << scanLine << "\n" << dtLine<< "\n" << hstring << "\n";
     
-    //print2dfloatVector(tArray);
     for (int j=0; j< tArray.size();j++ ){
         
         for (int k=0 ; k< tArray[0].size(); k++){
