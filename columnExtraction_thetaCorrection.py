@@ -51,7 +51,6 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     lines = f.readlines()
     f.close()
     onscan = False
-    #dfFilteredDct = {}
     for c,line in enumerate(lines):
         if '#S' in line and 'zapline' in line:
             newstring = ''
@@ -81,7 +80,6 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             else:
                 filtCols = counterNames_NF
             dfFiltered = df[filtCols].copy(deep=True)
-            #dfFiltered.set_index('ZapEnergy',inplace = True)
             dfFiltered['Theta_offset'] =  dfFiltered['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
             dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev)
             dfFiltered.set_index('ZapEnergy_offset',inplace = True)

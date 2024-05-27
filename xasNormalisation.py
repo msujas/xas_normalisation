@@ -8,7 +8,7 @@ direc = r''
 
 
 
-def normalise(ds):
+def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     '''
     Takes a pandas Series with values as mu and index as energy as an argument.
     The normalisation orders seem to be different between Athena and Larch. 
@@ -34,10 +34,10 @@ def normalise(ds):
     pre2 = -30
     if group.energy[-1] - group.energy[0] > 500: #EXAFS
         post1 = 150
-        nnorm = 3
+        nnorm = exafsnorm
     else: #XANES
         post1 = 65
-        nnorm = 1
+        nnorm = xanesnorm
     post2 = group.energy[-1] - group.e0
     pre_edge(group = group,energy = group.energy, mu = group.mu, e0 = group.e0, pre1=pre1,pre2=pre2,
              norm1 = post1, norm2=post2, nnorm = nnorm)

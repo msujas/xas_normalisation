@@ -8,7 +8,7 @@ import os
 from glob import glob
 import time
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\a311222'
+direc = r'Z:\visitor\ch6989\bm31\20240507\pylatus\CuMOR'
 thetaOffset = 0
 waitTime = 1
 
