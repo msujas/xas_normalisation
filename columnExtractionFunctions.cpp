@@ -65,6 +65,25 @@ vector<string> splitString(string inputString, string delimiter){
     return outVector;
 }
 
+float mean1dVector(vector<float> vec){
+    float sum = 0;
+    for (float item : vec){
+        sum += item;
+    }
+    sum /= vec.size();
+    return sum;
+}
+
+float max1dVector(vector<float> vec){
+    float max = vec[0];
+    for (float item : vec){
+        if (item > max){
+            max = item;
+        }
+    }
+    return max;
+}
+
 vector<float> splitStringFloat(string inputString, string delimiter){
     int pos;
     string substring;
@@ -161,6 +180,9 @@ void datToVector (string filename, vector<string> columnNames){
     int endLine;
     bool onscan = false;
     int spectrumCount = -1;
+    string monPattern = "mon_";
+    string i1Pattern = "ion_1_";
+    string fluoConter = "xmap_roi00";
 
     vector<string> fileLineSplit;
     vector<string> arrayHeader;
@@ -175,6 +197,7 @@ void datToVector (string filename, vector<string> columnNames){
     vector<vector<float>> dataArray;
     bool scanStart = false;
     string columnString = "";
+    float timeStep;
     for (int i = 0; i< columnNames.size(); i++){
         columnString += columnNames[i] + " ";
     }
@@ -190,6 +213,10 @@ void datToVector (string filename, vector<string> columnNames){
         else if (isIn(s,"#D") && onscan){
             dtLine = s;
         }
+        else if (isIn(s,"#T") && onscan){
+            string timestring = splitString(s," ")[1];
+            timeStep = stof(timestring);
+            }
         else if (isIn(s,"#L") && onscan){
             startLine = line+1;
             headString = s.replace(s.find("#L "),3,"");
@@ -197,55 +224,67 @@ void datToVector (string filename, vector<string> columnNames){
             scanStart = true;
         }
         else if (scanStart && !isIn(s,"#")){
-            dataArray.push_back(splitStringFloat(s," "));
+            //dataArray.push_back(splitStringFloat(s," "));
+            vector<float> lineArray;
+            for (int j = 0; j < columnNames.size(); j++){
+                for (int k=0; k < arrayHeader.size(); k++) {
+                    if (isIn(columnNames[j], arrayHeader[k])){
+                        lineArray.push_back(splitStringFloat(s," ")[k]);
+                    }
+                }
+            }
+            dataArray.push_back(lineArray);
         }
         else if (isIn(s,"#C") && onscan){
             onscan = false;
             scanStart = false;
             endLine = line -1;
-            vector<vector<float>> transposedArray = transposeVector(dataArray);
-            vector<vector<float>> columnSelectArray;
-
-
-
-            for (int j = 0; j < columnNames.size(); j++){
-                for (int k=0; k < arrayHeader.size(); k++) {
-                    if (isIn(columnNames[j], arrayHeader[k])){
-                        columnSelectArray.push_back(transposedArray[k]);
-                    }
+            vector<vector<float>> filteredArray;
+            string filteredColumns ="";
+            vector<vector<float>> tArray = transposeVector(dataArray);
+            for (int i = 0; i < columnNames.size(); i++){
+                string cName = columnNames[i];
+                vector<float> columnArray = tArray[i];
+                float max = max1dVector(columnArray);
+                float mean = mean1dVector(columnArray);
+                if (max > timeStep && (isIn(cName ,i1Pattern) || isIn(cName,monPattern))){
+                    filteredArray.push_back(columnArray);
+                    filteredColumns += cName + " " ;
+                }
+                else if (isIn(cName,fluoConter) && max > 10){
+                    filteredArray.push_back(columnArray);
+                    filteredColumns +=  cName + " ";
+                }
+                else if (!isIn(cName,i1Pattern) && !isIn(cName,monPattern) && cName != fluoConter) {
+                    filteredArray.push_back(columnArray);
+                    filteredColumns +=  cName + " ";
                 }
             }
-                vector<vector<float>> tArray = transposeVector(columnSelectArray);
-                ofstream outfile;
-                string number = numberFormat(spectrumCount,4);
-                
-                string newfilename = basefile + "/"+ basefile + "_" + number + ".dat";
-                cout << newfilename << "\n";
-                outfile.open(newfilename);
+            filteredColumns.pop_back();
+            vector<vector<float>> tFiltered = transposeVector(filteredArray);
+            ofstream outfile;
+            string number = numberFormat(spectrumCount,4);
+            
+            string newfilename = basefile + "/"+ basefile + "_" + number + ".dat";
+            cout << newfilename << "\n";
+            outfile.open(newfilename);
 
-                outfile << scanLine << "\n" << dtLine<< "\n" << columnString << "\n";
+            outfile << scanLine << "\n" << dtLine<< "\n" << filteredColumns << "\n";
+            
+            for (int j=0; j< tFiltered.size();j++ ){
                 
-                for (int j=0; j< tArray.size();j++ ){
-                    
-                    for (int k=0 ; k< tArray[0].size(); k++){
-                        outfile << tArray[j][k] << " ";
-                    }
-                    outfile << "\n";
+                for (int k=0 ; k< tFiltered[0].size(); k++){
+                    outfile << tFiltered[j][k] << " ";
                 }
-                outfile.close();
+                outfile << "\n";
+            }
+            outfile.close();
 
         }
-        /*
-        if (onscan == true){
-        cout << s << endl;
-        }
-        */
+
         line++;
     }
-    
-    
-    //tuple<vector<vector<vector<float>>>,vector<string>, vector<string>, string> outTuple = {allArrays, scanLines, dtLines, columnString};
-    
+     
     
 }
 

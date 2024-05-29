@@ -13,14 +13,14 @@ using namespace std;
 int main(int argc, char *argv[2]){
 float thetaOffset = 0;
 
-string file; 
+string directory; 
 if (argc == 2){
- file = argv[1];
+ directory = argv[1];
 }
 else {
-file = "10_ramp_O2_to480C_Cu_xanes.dat";
+directory = ".";
 }
-cout << argc << "\n" ;
+cout << directory << endl;
 
 
 
@@ -39,9 +39,14 @@ for (int i = 0; i < counterNames.size(); i++){
     }
 }
 //tuple<vector<vector<float>> , vector<string>> arrayandHeaders = datToVector(file, counterNames);
-
-int noscans = getLastScan(file);
-cout << "total scans " << noscans <<"\n";
-datToVector(file, counterNames);
-
+for (auto entry : filesystem::directory_iterator(directory)){
+    string file = entry.path().string();
+    
+    if (isIn(file,".dat")){
+        cout << file << endl;
+        int noscans = getLastScan(file);
+        cout << "total scans " << noscans <<"\n";
+        datToVector(file, counterNames);
+    }
+}
 }
