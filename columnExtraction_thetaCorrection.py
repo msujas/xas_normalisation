@@ -5,7 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\ch6989'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\May2024carlos'
 thetaOffset = 0
 
 
@@ -20,6 +20,10 @@ monPattern = 'mon_'
 ion1Pattern = 'ion_1'
 counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
 counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
+xColumns = ['ZapEnergy','TwoTheta']
+signalCounters = ['mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
+monCounters = [c for c in signalCounters if monPattern in c]
+i1counters = [c for c in signalCounters if ion1Pattern in c]
 
 def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
@@ -48,6 +52,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
 
     f = open(file,'r')
+    print(file)
     scanStart = False
     onscan = False
     for c,line in enumerate(f):
@@ -74,9 +79,10 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             lineSplit = np.array([np.fromstring(line,sep = ' ')])
             if lineno == 0:
                 array = lineSplit
+                lineno += 1
             else:
                 array = np.append(array,lineSplit,axis = 0)
-            lineno += 1
+            
         elif '#C' in line and onscan:
             dfend = c
             scanStart = False
@@ -101,10 +107,10 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
                 dfFiltered.drop(fluoCounter,axis = 1,inplace = True)
             if len([col for col in dfFiltered if monPattern in col]) > 1:
                 dfMondct = dfFiltered[[col for col in dfFiltered if monPattern in col]]
-                dfFiltered = dfFiltered.drop(columns=[dfMondct.mean().sort_values().index[:-1]])
+                dfFiltered = dfFiltered.drop(columns=dfMondct.mean().sort_values().index[:-1])
             if len([col for col in dfFiltered if ion1Pattern in col]) > 1:
                 dfi1dct = dfFiltered[[col for col in dfFiltered if ion1Pattern in col]]
-                dfFiltered = dfFiltered.drop(columns=[dfi1dct.mean().sort_values().index[:-1]])         
+                dfFiltered = dfFiltered.drop(columns=dfi1dct.mean().sort_values().index[:-1])         
 
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
 

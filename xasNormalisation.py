@@ -151,7 +151,7 @@ def run(direc):
         if transmission:
             dfmergeTrans = dfTrans.mean(axis = 1)
             dfmergeTrans.name = 'mu'
-            dfmergeTrans.to_csv('merge/transMerge.dat',sep = ' ')
+            dfmergeTrans.to_csv(f'merge/{basefileT}_merge.dat',sep = ' ')
             if np.max(dfmergeTrans.values) - np.min(dfmergeTrans.values) > 0.1: #checking to see if data is real
                 groupTmerge = normalise(dfmergeTrans)
                 basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T.nor',file)
@@ -160,7 +160,7 @@ def run(direc):
         if fluorescenceCounter in df0.columns:
             dfmergeFluo = dfFluo.mean(axis = 1)
             dfmergeFluo.name = 'mu'
-            dfmergeFluo.to_csv('merge/fluoMerge.dat', sep = ' ')
+            dfmergeFluo.to_csv(f'merge/{basefileF}_merge.dat', sep = ' ')
             if np.max(dfmergeFluo.values) - np.min(dfmergeFluo.values) > 0.1:
                 groupFmerge = normalise(dfmergeFluo)
                 basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F.nor',file)
