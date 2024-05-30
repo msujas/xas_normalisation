@@ -9,7 +9,7 @@ direc = r'C:\Users\kenneth1a\Documents\beamlineData\May2024carlos'
 thetaOffset = 0
 
 
-dspacing = 3.133789
+dspacing = 3.13379
 planck = 6.62607015e-34
 charge = 1.60217663e-19
 speedOfLight = 299792458
@@ -90,36 +90,30 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             if dfend-dfstart <= 1:
                 continue
             df = pd.DataFrame(data=array,columns=columns)
-            if fluoCounter in columns:
-                filtCols = counterNames
-            else:
-                filtCols = counterNames_NF
-            dfFiltered = df[filtCols].copy(deep=True)
+
+            dfFiltered = df[xColumns].copy(deep=True)
             dfFiltered['Theta_offset'] =  dfFiltered['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
             dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev)
             dfFiltered.set_index('ZapEnergy_offset',inplace = True)
 
-            for counter in filtCols: #removing unused counters
-                if monPattern in counter or ion1Pattern in counter:
-                    if np.max(dfFiltered[counter].values) < 1000*timeStep:
-                        dfFiltered.drop(counter,axis = 1,inplace = True)
-            if np.max(dfFiltered[fluoCounter].values) < 10:
-                dfFiltered.drop(fluoCounter,axis = 1,inplace = True)
-            if len([col for col in dfFiltered if monPattern in col]) > 1:
-                dfMondct = dfFiltered[[col for col in dfFiltered if monPattern in col]]
-                dfFiltered = dfFiltered.drop(columns=dfMondct.mean().sort_values().index[:-1])
-            if len([col for col in dfFiltered if ion1Pattern in col]) > 1:
-                dfi1dct = dfFiltered[[col for col in dfFiltered if ion1Pattern in col]]
-                dfFiltered = dfFiltered.drop(columns=dfi1dct.mean().sort_values().index[:-1])         
-
+            usedMon = df[monCounters].max().idxmax()
+            
+            dfFiltered[usedMon] = df[usedMon].values
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-
-            if len([col for col in dfFiltered.columns if monPattern in col]) == 0 or\
-                len([col for col in dfFiltered.columns if fluoCounter in col or ion1Pattern in col ]) == 0:
-
+            if np.max(dfFiltered[usedMon].values) < timeStep*1000:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
+            usedI1 = df[i1counters].max().idxmax()
+            dfFiltered[usedI1] = df[usedI1].values
+            if fluoCounter in columns:
+                if df[fluoCounter].values.max() > 300*timeStep:
+                    dfFiltered[fluoCounter] = df[fluoCounter].values
+            if np.max(dfFiltered[usedI1].values) < timeStep*1000 and fluoCounter not in dfFiltered.columns:
+                if os.path.exists(newfile):
+                    os.remove(newfile)
+                continue
+            
             f2 = open(newfile,'w')
             f2.write(newstring)
             f2.close()
