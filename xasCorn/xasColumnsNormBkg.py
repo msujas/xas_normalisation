@@ -3,9 +3,9 @@ script for running the column extraction and xas normalisation in the background
 constantly looking for new files or if files have been modified and rerunning in
 a subdirectory if it finds something there
 '''
-try:
+if not __name__ == '__main__':
     from . import columnExtraction_thetaCorrection, xasNormalisation
-except ImportError:
+else:
     import columnExtraction_thetaCorrection, xasNormalisation
 import os
 from glob import glob
@@ -32,8 +32,8 @@ def main(direc = '.',thetaOffset = 0, waitTime = 1):
     if direc[-1] == '/' or direc[-1] == '\\':
         direc = direc[:-1]
 
-    
-    
+
+
     print('running column extraction')
     fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset)
     print('running normalisation')
