@@ -12,11 +12,11 @@ from glob import glob
 import time
 import argparse
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\May2024carlos'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\xasTest'
 thetaOffset = 0
 waitTime = 1
 
-def main(direc = '.',thetaOffset = 0, waitTime = 1):
+def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     '''
     arguments: 
     -to - theta offset to apply to mono to correct energy range (default 0)
@@ -28,11 +28,11 @@ def main(direc = '.',thetaOffset = 0, waitTime = 1):
                         help = 'theta offset to apply to monochromator for energy correction')
     args = parser.parse_args()
 
-    direc = args.directory
+    direc = os.path.realpath(args.directory)
     if direc[-1] == '/' or direc[-1] == '\\':
         direc = direc[:-1]
 
-
+    print(direc)
 
     print('running column extraction')
     fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset)
