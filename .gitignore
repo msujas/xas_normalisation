@@ -5,3 +5,6 @@ ascan.py
 lastDirectory.log
 larchPlot.py
 __pycache__
+.vscode
+*.exe
+xasNormalisation.egg-info

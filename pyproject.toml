@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools >= 60.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xasNormalisation"
+version = "1.0.0"
+requires-python = ">= 3.9"
+dependencies = ["pandas", "matplotlib", "scipy","xraylarch"]
+authors = [{name = "Kenneth P. Marshall", email = "kenneth.marshall@esrf.fr"}]
+maintainers = [{name = "Kenneth P. Marshall", email = "kenneth.marshall@esrf.fr"}]
+description = "XAS COlumn selection, Regridding and Normalisation. Programs for splitting files, selecting columns, regridding and normalising XAS data on BM31"
+readme = {file = "README.MD", content-type = "text/markdown"}
+keywords = ["XAS","X-ray absorption spectroscopy"]
+classifiers = [
+"Development Status :: 4 - Beta",
+"Programming Language :: Python :: 3.12"]
+
+[project.scripts]
+xasCorn = "xasCorn.xasColumnsNormBkg:main"
+
+[tool.setuptools]
+packages = ["xasCorn"]
+
+[project.urls]
+repository = "https://github.com/msujas/xas_normalisation"
