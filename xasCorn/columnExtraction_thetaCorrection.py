@@ -224,7 +224,6 @@ def run(direc,thetaOffset=0):
 
         if len(datfiles) == 0:
             continue
-        #digits = math.ceil(math.log10(len(datfiles)))
         print(os.getcwd())
         for file in datfiles:
             processFile(file, fileDct, currentdir,  thetaOffset)
