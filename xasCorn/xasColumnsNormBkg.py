@@ -3,7 +3,10 @@ script for running the column extraction and xas normalisation in the background
 constantly looking for new files or if files have been modified and rerunning in
 a subdirectory if it finds something there
 '''
-from . import columnExtraction_thetaCorrection, xasNormalisation
+try:
+    from . import columnExtraction_thetaCorrection, xasNormalisation
+except ImportError:
+    import columnExtraction_thetaCorrection, xasNormalisation
 import os
 from glob import glob
 import time
