@@ -132,11 +132,6 @@ def regrid(coldir):
     files.sort()
     if len(files) == 0:
         return
-    pattern = '_'
-    for n in range(digits):
-        pattern += '[0-9]'
-    pattern += '.dat'
-    basename = re.sub(pattern,'',os.path.basename(files[0]))
     dfFilteredDct = {}
     headers = []
     for c,file in enumerate(files):
@@ -157,17 +152,16 @@ def regrid(coldir):
     no_tries = 30
     grid = np.arange(ZE[0].round(5),ZE[-1].round(5),spacing)
     for c, file in enumerate(dfFilteredDct):
-        
-        if len(dfFilteredDct[file].index.values) < len(grid) - no_tries:
-            print(f'{file} too short, couldn\'t be regridded')
-            if os.path.exists(newfilerg):
-                os.remove(newfilerg)
-            continue
         ZEmin = 0
         ZEmax = -1
         Emin = ZE[0]
         Emax = ZE[-1]
         newfilerg = f'{coldir}/regrid/{file}'
+        if len(dfFilteredDct[file].index.values) < len(grid) - no_tries:
+            print(f'{file} too short, couldn\'t be regridded')
+            if os.path.exists(newfilerg):
+                os.remove(newfilerg)
+            continue
         f = open(newfilerg,'w')
         f.write(headers[c])
         f.close()
@@ -183,6 +177,19 @@ def regrid(coldir):
         
         newgrid = grid[ZEmin+1:ZEmax]
         newgrid = newgrid.round(5)
+        monCounter = [c for c in dfFilteredDct[file].columns if monPattern in c][0]
+        i1counters = [c for c in dfFilteredDct[file].columns if ion1Pattern in c]
+        if i1counters:
+            i1counter = i1counters[0]
+            muT = np.log(dfFilteredDct[file][monCounter].values/dfFilteredDct[file][i1counter].values)
+            gridfunc = interp1d(dfFilteredDct[file].index.values,muT)
+            muTregrid = gridfunc(newgrid)
+            regridDF['muT'] = muTregrid
+        if fluoCounter in dfFilteredDct[file].columns:
+            muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
+            gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
+            muFregrid = gridfunc(newgrid)
+            regridDF['muF'] = muFregrid
         for counter in dfFilteredDct[file].columns:
             if monPattern in counter or ion1Pattern in counter or fluoCounter in counter:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)

@@ -51,7 +51,8 @@ def run(direc):
     fluorescenceCounter = 'xmap_roi00'
     monPattern = 'mon_'
     ion1Pattern = 'ion_1'
-    
+    muFheader = 'muF'
+    muTheader = 'muT'
     for root,dirs,files in os.walk(os.getcwd()):
         if not 'regrid' in root or 'merge' in root or 'norm' in root:
             continue
@@ -79,25 +80,23 @@ def run(direc):
             f.close()
             if c == 0:
                 df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
-                if fluorescenceCounter in df0.columns:
+                if muFheader in df0.columns:
                     fluorescence = True
-                if len([col for col in df0.columns if ion1Pattern in col]) == 0:
-                    transmission = False
-                else:
+                if muTheader in df0.columns:
                     transmission = True
-                    i1_counter = [col for col in df0.columns if ion1Pattern in col][0]
+                else:
+                    transmission = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
             dfmergedct[file] = pd.DataFrame()
             Emins = np.append(Emins,df.index.values[0])
             Emaxs = np.append(Emaxs,df.index.values[-1])
-            mon_counter = [col for col in df.columns if monPattern in col][0]
             dfmergedct[file]['energy_offset(keV)'] = df.index.values
             E = df.index.values
             if transmission:
-                muT = np.log(df[mon_counter].values/df[i1_counter].values)
+                muT = df[muTheader].values
                 dfmergedct[file]['muT'] = muT
             if fluorescence:
-                muFluo = df[fluorescenceCounter].values/df[mon_counter].values
+                muFluo = df[muFheader].values
                 dfmergedct[file]['muF'] = muFluo
       
         E0merge = np.max(Emins)
