@@ -71,7 +71,6 @@ def run(direc):
         Emins = np.array([])
         Emaxs = np.array([])
         dfmergedct = {}
-        fluorescence = False
         for c,file in enumerate(datfiles):
             
             f = open(file,'r')
