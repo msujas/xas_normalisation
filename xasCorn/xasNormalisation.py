@@ -67,107 +67,89 @@ def run(direc):
         if len(datfiles) == 0:
             continue
         print(root)
+        Emins = np.array([])
+        Emaxs = np.array([])
+        dfmergedct = {}
         for c,file in enumerate(datfiles):
-            print(file)
-            basefileT = file.replace('.dat','T')
-            basefileF = file.replace('.dat','F')
+            fluorescence = False
+            
+
             f = open(file,'r')
             header = ''.join(f.readlines()[:2]).replace('#','')
             f.close()
             if c == 0:
                 df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
                 if fluorescenceCounter in df0.columns:
-                    dfFluo = pd.DataFrame()
-                    dfFluo.index = df0.index
+                    fluorescence = True
                 if len([col for col in df0.columns if ion1Pattern in col]) == 0:
                     transmission = False
                 else:
                     transmission = True
                     i1_counter = [col for col in df0.columns if ion1Pattern in col][0]
-                dfTrans = pd.DataFrame()
-                dfTrans.index = df0.index
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
+            dfmergedct[file] = pd.DataFrame()
+            Emins = np.append(Emins,df.index.values[0])
+            Emaxs = np.append(Emaxs,df.index.values[-1])
             mon_counter = [col for col in df.columns if monPattern in col][0]
-
-                
+            dfmergedct[file]['energy_offset(keV)'] = df.index.values
             E = df.index.values
-
-            if c != 0 and len(df.index.values) < len(dfTrans.index.values): #removing data points if data sizes don't match for averaging
-
-                E0 = dfTrans.index.values
-                mismatchsize = len(E0) - len(E)
-                print(f'mismatched data size')
-                print(f'cutting data by {mismatchsize} points to fit')
-                for n in range(mismatchsize):
-                    if E[-1] != E0[-1]:
-                        dfTrans.drop(E0[-1],axis = 0,inplace = True)
-                        if fluorescenceCounter in df0.columns:
-                            dfFluo.drop(E0[-1],axis = 0,inplace = True)
-                    elif E[0] != E0[0]:
-                        dfTrans.drop(E0[0],axis = 0,inplace=True)
-                        if fluorescenceCounter in df0.columns:
-                            dfFluo.drop(E0[0],axis = 0,inplace = True)
-                    E0 = dfTrans.index.values
-            elif c != 0 and len(df.index.values) > len(dfTrans.index.values): #removing data points if data sizes don't match
-                
-                E0 = dfTrans.index.values
-                mismatchsize = len(E) - len(E0)
-                print(f'mismatched data size')
-                print(f'cutting data by {mismatchsize} points to fit')
-                for n in range(mismatchsize):
-                    if E[-1] != E0[-1] and len(E0):
-                        df.drop(E[-1],axis = 0,inplace = True)
-
-                    elif E[0] != E0[0] and len(E0):
-                        df.drop(E[0],axis = 0,inplace=True)
-
-                    E = df.index.values
-    
-            if fluorescenceCounter in df.columns:
-        
-                muFluo = df[fluorescenceCounter].values/df[mon_counter].values
-                dfFluo[c] = muFluo
-                ds = pd.Series(index = dfFluo.index,data = muFluo)
-
-                if np.max(df[mon_counter].values) > 500 and np.max(df[fluorescenceCounter].values) > 10: #filtering out bad data
-                    groupF = normalise(ds)
-                    
-                    fileF = f'norm/fluo/{basefileF}.nor'
-
-                    np.savetxt(fileF,np.array([E,groupF.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
-
             if transmission:
-                try:
-                    muTrans = np.log(df[mon_counter].values/df[i1_counter].values)
-                    dfTrans[c] = muTrans
+                muT = np.log(df[mon_counter].values/df[i1_counter].values)
+                dfmergedct[file]['muT'] = muT
+            if fluorescence:
+                muFluo = df[fluorescenceCounter].values/df[mon_counter].values
+                dfmergedct[file]['muF'] = muFluo
+      
+        E0merge = np.max(Emins)
+        EendMerge = np.min(Emaxs)
+        dfMergeT = pd.DataFrame()
+        dfMergeF = pd.DataFrame()
+        for c,file in enumerate(dfmergedct):
+            basefileT = file.replace('.dat','T')
+            basefileF = file.replace('.dat','F')
+            E = dfmergedct[file]['energy_offset(keV)'].values
+            minindex = np.abs(E - E0merge).argmin()
+            maxindex = np.abs(E - EendMerge).argmin()
 
-                    if np.max(df[mon_counter].values) < 500:
-                        continue
-                    ds = pd.Series(index = dfTrans.index,data = muTrans)
-                    groupT = normalise(ds)
-                    
-                    fileT = f'norm/trans/{basefileT}.nor'
-                    np.savetxt(fileT,np.array([E,groupT.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
-                except KeyError:
-                    print(f'transmission too low in {file}')
+            if fluorescence:
+                muFluo = dfmergedct[file]['muF'].loc[minindex:] #making individual files start with same E value to make plotting easier
+                ds = pd.Series(index = E[minindex:],data = muFluo)
+                groupF = normalise(ds)
+                fileF = f'norm/fluo/{basefileF}.nor'
+                print(fileF)
+                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
+                if c == 0:
+                    dfMergeF['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
+                    dfMergeF = dfMergeF.set_index('energy_offset(keV)')
+                dfMergeF[c] = dfmergedct[file]['muF'].loc[minindex:maxindex].values
+            if transmission:
+                muT =  dfmergedct[file]['muT'].loc[minindex:].values
+                ds = pd.Series(index = E[minindex:],data = muT)
+                groupT = normalise(ds)
+                fileT = f'norm/trans/{basefileT}.nor'
+                print(fileT)
+                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
+                if c == 0:
+                    dfMergeT['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
+                    dfMergeT = dfMergeT.set_index('energy_offset(keV)')
+                dfMergeT[c] = dfmergedct[file]['muT'].loc[minindex:maxindex].values
+
         if transmission:
-            dfmergeTrans = dfTrans.mean(axis = 1)
+            dfmergeTrans = dfMergeT.mean(axis = 1)
             dfmergeTrans.name = 'mu'
             basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T',file)
             dfmergeTrans.to_csv(f'merge/{basefileTmerge}_merge.dat',sep = ' ')
             if np.max(dfmergeTrans.values) - np.min(dfmergeTrans.values) > 0.1: #checking to see if data is real
                 groupTmerge = normalise(dfmergeTrans)
-                
                 fileTmerge = f'merge/{basefileTmerge}.nor'
                 np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
         if fluorescenceCounter in df0.columns:
-            dfmergeFluo = dfFluo.mean(axis = 1)
+            dfmergeFluo = dfMergeF.mean(axis = 1)
             dfmergeFluo.name = 'mu'
             basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F',file)
             dfmergeFluo.to_csv(f'merge/{basefileFmerge}_merge.dat', sep = ' ')
             if np.max(dfmergeFluo.values) - np.min(dfmergeFluo.values) > 0.1:
                 groupFmerge = normalise(dfmergeFluo)
-                
                 fileFmerge = f'merge/{basefileFmerge}.nor'
                 np.savetxt(fileFmerge,np.array([groupFmerge.energy,groupFmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
 if __name__ == '__main__':

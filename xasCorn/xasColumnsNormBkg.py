@@ -48,7 +48,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
             if 'columns' in root:
                 continue
             os.chdir(currentdir)
-            datfiles = glob('*.dat')
+            datfiles = glob(f'*.dat')
             datfiles = [currentdir + file for file in datfiles]
             for file in datfiles:
                 if 'tempLog' in file:
