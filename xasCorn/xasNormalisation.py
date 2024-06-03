@@ -71,22 +71,24 @@ def run(direc):
         Emins = np.array([])
         Emaxs = np.array([])
         dfmergedct = {}
+        fluorescence = False
         for c,file in enumerate(datfiles):
-            fluorescence = False
             
-
             f = open(file,'r')
             header = ''.join(f.readlines()[:2]).replace('#','')
             f.close()
             if c == 0:
                 df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
-                if muFheader in df0.columns:
-                    fluorescence = True
+
                 if muTheader in df0.columns:
                     transmission = True
                 else:
                     transmission = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
+            if muFheader in df.columns:
+                fluorescence = True
+            else:
+                fluorescence = False
             dfmergedct[file] = pd.DataFrame()
             Emins = np.append(Emins,df.index.values[0])
             Emaxs = np.append(Emaxs,df.index.values[-1])
@@ -111,7 +113,7 @@ def run(direc):
             maxindex = np.abs(E - EendMerge).argmin()
 
             if fluorescence:
-                muFluo = dfmergedct[file]['muF'].loc[minindex:] #making individual files start with same E value to make plotting easier
+                muFluo = dfmergedct[file]['muF'].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
                 groupF = normalise(ds)
                 fileF = f'norm/fluo/{basefileF}.nor'
