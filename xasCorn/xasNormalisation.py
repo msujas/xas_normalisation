@@ -31,7 +31,11 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     
     find_e0(group = group, energy = group.energy, mu = group.mu)
     pre1 = group.energy[0] - group.e0
-    pre2 = -30
+    pre2Function = -(group.e0*0.0029 - 15.5) #-30
+    if pre2Function - pre1 > 30:
+        pre2 = pre2Function #-30
+    else:
+        pre2 = -30
     if group.energy[-1] - group.energy[0] > 500: #EXAFS
         post1 = 150
         nnorm = exafsnorm

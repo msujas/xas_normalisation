@@ -24,15 +24,22 @@ edgesdf.to_csv('xrayEdges.dat', sep = '\t', header=True, index=True)
 
 xanes_programDF = pd.DataFrame(columns = ['start','stop','step'])
 exafs_programDF = pd.DataFrame(columns = ['start','stop','step'])
+xanes_programDFside = pd.DataFrame(columns = ['start','stop','step'])
+exafs_programDFside = pd.DataFrame(columns = ['start','stop','step'])
 def xanes_step(startE):
     return (0.0186*startE + 0.2145).round(1)
 def exafs_step(startE):
     return (0.0234*startE + 0.3754).round(1)
 for e in edgesdf.index.values:
+
     edgeValue = edgesdf.loc[e]['main']
-    start_xanes = (edgeValue - 0.1).round(2)
+    if edgeValue > 25:
+        startDiff = 0.2
+    else:
+        startDiff = 0.1
+    start_xanes = (edgeValue - startDiff).round(2)
     stop_xanes = (edgeValue + 0.15).round(2)
-    start_exafs = (edgeValue - 0.1).round(2)
+    start_exafs = (edgeValue - startDiff).round(2)
     stop_exafs = (edgeValue + 1).round(2)
     step_xanes = xanes_step(start_xanes)
     step_exafs = exafs_step(start_exafs)
@@ -51,10 +58,11 @@ for e in edgesdf.index.values:
     exafs_programDF.loc[e] = [start_exafs,stop_exafs,step_exafs]
     if edgesdf.loc[e]['K'] > 35 and edgesdf.loc[e]['K'] < 41:
         element_name = f'{e}_K'
+        startDiff = 0.2
         edgeValue = edgesdf.loc[e]['K']
-        start_xanes = (edgeValue - 0.1).round(2)
+        start_xanes = (edgeValue - startDiff).round(2)
         stop_xanes = (edgeValue + 0.15).round(2)
-        start_exafs = (edgeValue - 0.1).round(2)
+        start_exafs = (edgeValue - startDiff).round(2)
         stop_exafs = (edgeValue + 1).round(2)
         step_xanes = xanes_step(start_xanes)
         step_exafs = exafs_step(start_exafs)
