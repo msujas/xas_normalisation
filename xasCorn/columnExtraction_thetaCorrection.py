@@ -52,10 +52,12 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
 
     f = open(file,'r')
+    lines = f.readlines()
+    f.close()
     print(file)
     scanStart = False
     onscan = False
-    for c,line in enumerate(f):
+    for c,line in enumerate(lines):
         if '#S' in line and 'zapline' in line:
             newstring = ''
             newstring += line
@@ -68,17 +70,16 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             timeStep = int(line.split()[1])/1000
         elif '#D' in line and onscan:
             newstring += line
-        elif '#L' in line:
+        elif '#L' in line and onscan:
             dfstart = c +1
             columns = line.replace('#L ','').split()
             scanStart = True
-            
             lineno = 0
         elif scanStart and '#' not in line:
-
             lineSplit = np.array([np.fromstring(line,sep = ' ')])
             if lineno == 0:
                 array = lineSplit
+
                 lineno += 1
             else:
                 array = np.append(array,lineSplit,axis = 0)
