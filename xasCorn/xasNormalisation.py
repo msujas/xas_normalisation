@@ -53,6 +53,7 @@ def run(direc):
     ion1Pattern = 'ion_1'
     muFheader = 'muF'
     muTheader = 'muT'
+    
     for root,dirs,files in os.walk(os.getcwd()):
         if not 'regrid' in root or 'merge' in root or 'norm' in root:
             continue
@@ -71,6 +72,7 @@ def run(direc):
         Emins = np.array([])
         Emaxs = np.array([])
         dfmergedct = {}
+        fluoList = []
         for c,file in enumerate(datfiles):
             
             f = open(file,'r')
@@ -83,11 +85,13 @@ def run(direc):
                     transmission = True
                 else:
                     transmission = False
+
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
             if muFheader in df.columns:
                 fluorescence = True
             else:
                 fluorescence = False
+            fluoList.append(fluorescence)
             dfmergedct[file] = pd.DataFrame()
             Emins = np.append(Emins,df.index.values[0])
             Emaxs = np.append(Emaxs,df.index.values[-1])
@@ -111,7 +115,7 @@ def run(direc):
             minindex = np.abs(E - E0merge).argmin()
             maxindex = np.abs(E - EendMerge).argmin()
 
-            if fluorescence:
+            if fluoList[c] == True:
                 muFluo = dfmergedct[file]['muF'].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
                 groupF = normalise(ds)
@@ -143,7 +147,7 @@ def run(direc):
                 groupTmerge = normalise(dfmergeTrans)
                 fileTmerge = f'merge/{basefileTmerge}.nor'
                 np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
-        if fluorescenceCounter in df0.columns:
+        if True in fluoList:
             dfmergeFluo = dfMergeF.mean(axis = 1)
             dfmergeFluo.name = 'mu'
             basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F',file)
