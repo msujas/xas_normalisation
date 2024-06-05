@@ -77,11 +77,13 @@ def run(direc):
         Emaxs = np.array([])
         dfmergedct = {}
         fluoList = []
+        headers = []
         for c,file in enumerate(datfiles):
             
             f = open(file,'r')
             header = ''.join(f.readlines()[:2]).replace('#','')
             f.close()
+            headers.append(header)
             if c == 0:
                 df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
 
@@ -125,7 +127,7 @@ def run(direc):
                 groupF = normalise(ds)
                 fileF = f'norm/fluo/{basefileF}.nor'
                 print(fileF)
-                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
+                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = f'{headers[c]}Energy(keV) mu_norm',fmt = '%.5f')
                 if c == 0:
                     dfMergeF['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
                     dfMergeF = dfMergeF.set_index('energy_offset(keV)')
@@ -136,7 +138,7 @@ def run(direc):
                 groupT = normalise(ds)
                 fileT = f'norm/trans/{basefileT}.nor'
                 print(fileT)
-                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = f'{header}Energy(keV) mu_norm',fmt = '%.5f')
+                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = f'{headers[c]}Energy(keV) mu_norm',fmt = '%.5f')
                 if c == 0:
                     dfMergeT['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
                     dfMergeT = dfMergeT.set_index('energy_offset(keV)')
