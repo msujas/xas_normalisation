@@ -47,7 +47,7 @@ def exafs_step(startE):
     return (0.0234*startE + 0.3754).round(1)
 #0.0047*edge + 0.0623 (edge in keV)
 def edgeStart(edgeValue):
-    return 0.002*edgeValue + 0.063
+    return 0.0045*edgeValue + 0.0685
 for e in edgesdf.index.values:
 
     edgeValue = edgesdf.loc[e]['main']
