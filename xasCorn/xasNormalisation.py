@@ -85,8 +85,6 @@ def run(direc):
             header = ''.join(f.readlines()[:2]).replace('#','')
             f.close()
             headers.append(header)
-            if c == 0:
-                df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
 
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
             if muFheader in df.columns:
@@ -150,18 +148,18 @@ def run(direc):
             dfmergeTrans.name = 'mu'
             basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T',file)
             dfmergeTrans.to_csv(f'merge/{basefileTmerge}_merge.dat',sep = ' ')
-            if np.max(dfmergeTrans.values) - np.min(dfmergeTrans.values) > 0.1: #checking to see if data is real
-                groupTmerge = normalise(dfmergeTrans)
-                fileTmerge = f'merge/{basefileTmerge}.nor'
-                np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
+            groupTmerge = normalise(dfmergeTrans)
+            fileTmerge = f'merge/{basefileTmerge}.nor'
+            np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
+
         if True in fluoList:
             dfmergeFluo = dfMergeF.mean(axis = 1)
             dfmergeFluo.name = 'mu'
             basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F',file)
             dfmergeFluo.to_csv(f'merge/{basefileFmerge}_merge.dat', sep = ' ')
-            if np.max(dfmergeFluo.values) - np.min(dfmergeFluo.values) > 0.1:
-                groupFmerge = normalise(dfmergeFluo)
-                fileFmerge = f'merge/{basefileFmerge}.nor'
-                np.savetxt(fileFmerge,np.array([groupFmerge.energy,groupFmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
+            groupFmerge = normalise(dfmergeFluo)
+            fileFmerge = f'merge/{basefileFmerge}.nor'
+            np.savetxt(fileFmerge,np.array([groupFmerge.energy,groupFmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
+            
 if __name__ == '__main__':
     run(direc = direc)
