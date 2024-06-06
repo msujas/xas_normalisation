@@ -77,6 +77,7 @@ def run(direc):
         Emaxs = np.array([])
         dfmergedct = {}
         fluoList = []
+        transmissionList = []
         headers = []
         for c,file in enumerate(datfiles):
             
@@ -87,17 +88,17 @@ def run(direc):
             if c == 0:
                 df0 = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0)
 
-                if muTheader in df0.columns:
-                    transmission = True
-                else:
-                    transmission = False
-
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
             if muFheader in df.columns:
                 fluorescence = True
             else:
                 fluorescence = False
+            if muTheader in df.columns:
+                transmission = True
+            else:
+                transmission = False
             fluoList.append(fluorescence)
+            transmissionList.append(transmission)
             dfmergedct[file] = pd.DataFrame()
             Emins = np.append(Emins,df.index.values[0])
             Emaxs = np.append(Emaxs,df.index.values[-1])
@@ -121,7 +122,7 @@ def run(direc):
             minindex = np.abs(E - E0merge).argmin()
             maxindex = np.abs(E - EendMerge).argmin()
 
-            if fluoList[c] == True:
+            if fluoList[c]:
                 muFluo = dfmergedct[file]['muF'].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
                 groupF = normalise(ds)
@@ -132,7 +133,7 @@ def run(direc):
                     dfMergeF['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
                     dfMergeF = dfMergeF.set_index('energy_offset(keV)')
                 dfMergeF[c] = dfmergedct[file]['muF'].loc[minindex:maxindex].values
-            if transmission:
+            if transmissionList[c]:
                 muT =  dfmergedct[file]['muT'].loc[minindex:].values
                 ds = pd.Series(index = E[minindex:],data = muT)
                 groupT = normalise(ds)
@@ -144,7 +145,7 @@ def run(direc):
                     dfMergeT = dfMergeT.set_index('energy_offset(keV)')
                 dfMergeT[c] = dfmergedct[file]['muT'].loc[minindex:maxindex].values
 
-        if transmission:
+        if True in transmissionList:
             dfmergeTrans = dfMergeT.mean(axis = 1)
             dfmergeTrans.name = 'mu'
             basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T',file)

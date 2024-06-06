@@ -101,16 +101,18 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             
             dfFiltered[usedMon] = df[usedMon].values
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-            if np.max(dfFiltered[usedMon].values) < timeStep*1000:
+            if np.max(dfFiltered[usedMon].values) < timeStep*3000:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
             usedI1 = df[i1counters].max().idxmax()
             dfFiltered[usedI1] = df[usedI1].values
+            if np.max(dfFiltered[usedI1].values) < 3000*timeStep:
+                dfFiltered = dfFiltered.drop(columns=[usedI1])
             if fluoCounter in columns:
                 if df[fluoCounter].values.max() > 300*timeStep:
                     dfFiltered[fluoCounter] = df[fluoCounter].values
-            if np.max(dfFiltered[usedI1].values) < timeStep*1000 and fluoCounter not in dfFiltered.columns:
+            if usedI1 not in dfFiltered.columns and fluoCounter not in dfFiltered.columns:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
