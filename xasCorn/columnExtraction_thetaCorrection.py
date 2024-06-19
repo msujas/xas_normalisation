@@ -126,7 +126,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     fileDct[file] = [filemtime,spectrum_count]
     
 
-def regrid(coldir):
+def regrid(coldir, unit = 'keV'):
     if not os.path.exists(coldir):
         return
     print(f'regridding {coldir}')
@@ -137,6 +137,13 @@ def regrid(coldir):
         return
     dfFilteredDct = {}
     headers = []
+    if unit == 'keV':
+        escale = 1
+    elif unit == 'eV':
+        escale = 1000
+    else:
+        escale = 1
+        unit = 'keV'
     for c,file in enumerate(files):
         basefile = os.path.basename(file)
         dfFilteredDct[basefile] = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
@@ -196,16 +203,18 @@ def regrid(coldir):
         for counter in dfFilteredDct[file].columns:
             if monPattern in counter or ion1Pattern in counter or fluoCounter in counter:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
-                regridDF[counter] = gridfunc(newgrid).round(1)      
+                regridDF[counter] = gridfunc(newgrid).round(1)
+        if unit == 'eV':
+            newgrid = (newgrid*escale).round(2)
         regridDF.index = newgrid
-        regridDF.index.name = 'energy_offset(keV)'
+        regridDF.index.name = f'energy_offset({unit})'
         if len(regridDF.columns) == 0:
             continue
         regridDF.to_csv(newfilerg,sep = ' ',mode = 'a')
 
 
 
-def run(direc,thetaOffset=0):
+def run(direc,thetaOffset=0, unit = 'keV'):
 
     os.chdir(direc)
     fileDct = {} #dictionary with files as keys, values: [modified time, last spectrum]
@@ -227,7 +236,7 @@ def run(direc,thetaOffset=0):
             processFile(file, fileDct, currentdir,  thetaOffset)
             basename = os.path.splitext(os.path.basename(file))[0]
 
-            regrid(f'{currentdir}columns/{basename}')
+            regrid(f'{currentdir}columns/{basename}', unit = unit)
             
     return fileDct
 

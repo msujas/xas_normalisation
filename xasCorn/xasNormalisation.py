@@ -47,7 +47,7 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
              norm1 = post1, norm2=post2, nnorm = nnorm)
     return group
 
-def run(direc):
+def run(direc, unit = 'keV'):
     if not os.path.exists(direc):
         return
     os.chdir(direc)
@@ -100,7 +100,7 @@ def run(direc):
             dfmergedct[file] = pd.DataFrame()
             Emins = np.append(Emins,df.index.values[0])
             Emaxs = np.append(Emaxs,df.index.values[-1])
-            dfmergedct[file]['energy_offset(keV)'] = df.index.values
+            dfmergedct[file][f'energy_offset({unit})'] = df.index.values
             E = df.index.values
             if transmission:
                 muT = df[muTheader].values
@@ -116,7 +116,7 @@ def run(direc):
         for c,file in enumerate(dfmergedct):
             basefileT = file.replace('.dat','T')
             basefileF = file.replace('.dat','F')
-            E = dfmergedct[file]['energy_offset(keV)'].values
+            E = dfmergedct[file][f'energy_offset({unit})'].values
             minindex = np.abs(E - E0merge).argmin()
             maxindex = np.abs(E - EendMerge).argmin()
 
@@ -126,10 +126,10 @@ def run(direc):
                 groupF = normalise(ds)
                 fileF = f'norm/fluo/{basefileF}.nor'
                 print(fileF)
-                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = f'{headers[c]}Energy(keV) mu_norm',fmt = '%.5f')
+                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = f'{headers[c]}Energy({unit}) mu_norm',fmt = '%.5f')
                 if c == 0:
-                    dfMergeF['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
-                    dfMergeF = dfMergeF.set_index('energy_offset(keV)')
+                    dfMergeF[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values
+                    dfMergeF = dfMergeF.set_index(f'energy_offset({unit})')
                 dfMergeF[c] = dfmergedct[file]['muF'].loc[minindex:maxindex].values
             if transmissionList[c]:
                 muT =  dfmergedct[file]['muT'].loc[minindex:].values
@@ -137,10 +137,10 @@ def run(direc):
                 groupT = normalise(ds)
                 fileT = f'norm/trans/{basefileT}.nor'
                 print(fileT)
-                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = f'{headers[c]}Energy(keV) mu_norm',fmt = '%.5f')
+                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = f'{headers[c]}Energy({unit}) mu_norm',fmt = '%.5f')
                 if c == 0:
-                    dfMergeT['energy_offset(keV)'] = dfmergedct[file]['energy_offset(keV)'].loc[minindex:maxindex].values
-                    dfMergeT = dfMergeT.set_index('energy_offset(keV)')
+                    dfMergeT[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values
+                    dfMergeT = dfMergeT.set_index(f'energy_offset({unit})')
                 dfMergeT[c] = dfmergedct[file]['muT'].loc[minindex:maxindex].values
 
         if True in transmissionList:
@@ -150,7 +150,7 @@ def run(direc):
             dfmergeTrans.to_csv(f'merge/{basefileTmerge}_merge.dat',sep = ' ')
             groupTmerge = normalise(dfmergeTrans)
             fileTmerge = f'merge/{basefileTmerge}.nor'
-            np.savetxt(fileTmerge,np.array([groupTmerge.energy,groupTmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
+            np.savetxt(fileTmerge,np.array([dfmergeTrans.index.values,groupTmerge.flat]).transpose(),header = f'Energy({unit}) mu_norm',fmt = '%.5f')
 
         if True in fluoList:
             dfmergeFluo = dfMergeF.mean(axis = 1)
@@ -159,7 +159,7 @@ def run(direc):
             dfmergeFluo.to_csv(f'merge/{basefileFmerge}_merge.dat', sep = ' ')
             groupFmerge = normalise(dfmergeFluo)
             fileFmerge = f'merge/{basefileFmerge}.nor'
-            np.savetxt(fileFmerge,np.array([groupFmerge.energy,groupFmerge.flat]).transpose(),header = '#Energy(keV) mu_norm',fmt = '%.5f')
+            np.savetxt(fileFmerge,np.array([dfmergeFluo.index.values,groupFmerge.flat]).transpose(),header = f'Energy({unit}) mu_norm',fmt = '%.5f')
             
 if __name__ == '__main__':
     run(direc = direc)

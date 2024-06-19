@@ -23,21 +23,25 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     directory - the directory to run in (default current directory in cmd)
     '''
     parser = argparse.ArgumentParser()
-    parser.add_argument('directory',nargs='?', default=direc, help = 'the directory to run in')
+    parser.add_argument('directory',nargs='?', default=direc, help = 'the directory to run in. Default is current directory')
     parser.add_argument('-to','--thetaOffset', type=float, default=thetaOffset, 
                         help = 'theta offset to apply to monochromator for energy correction')
+    parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV)')
     args = parser.parse_args()
 
     direc = os.path.realpath(args.directory)
     if direc[-1] == '/' or direc[-1] == '\\':
         direc = direc[:-1]
-
+    unit = args.unit
+    if unit != 'keV' and unit != 'eV':
+        print('unit must be "keV" or "eV"')
+        return
     print(direc)
 
     print('running column extraction')
-    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset)
+    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit)
     print('running normalisation')
-    xasNormalisation.run(direc)
+    xasNormalisation.run(direc, unit = unit)
     repeat = True
     while True:
         if repeat == True:
@@ -62,12 +66,12 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     print(f'running column extraction on {file}')
                     columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)
                     basename = os.path.splitext(os.path.basename(file))[0]
-                    columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}')
+                    columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}', unit = unit)
                     columnDir = os.path.basename(file).replace('.dat','')
                     normdir = f'{root}/columns/{columnDir}'
                     if os.path.exists(normdir):
                         print(f'running normalisation in {root}/columns/{columnDir}')
-                        xasNormalisation.run(f'{root}/columns/{columnDir}')
+                        xasNormalisation.run(f'{root}/columns/{columnDir}', unit = unit)
 
         time.sleep(waitTime)
 

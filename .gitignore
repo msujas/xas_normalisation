@@ -9,3 +9,4 @@ __pycache__
 *.exe
 xasNormalisation.egg-info
 *.cpp
+*.xlsx
