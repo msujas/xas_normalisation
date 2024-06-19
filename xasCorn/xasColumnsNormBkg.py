@@ -26,7 +26,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     parser.add_argument('directory',nargs='?', default=direc, help = 'the directory to run in. Default is current directory')
     parser.add_argument('-to','--thetaOffset', type=float, default=thetaOffset, 
                         help = 'theta offset to apply to monochromator for energy correction')
-    parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV)')
+    parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     args = parser.parse_args()
 
     direc = os.path.realpath(args.directory)
