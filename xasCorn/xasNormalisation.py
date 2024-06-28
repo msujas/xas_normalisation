@@ -47,6 +47,7 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
              norm1 = post1, norm2=post2, nnorm = nnorm)
     return group
 
+
 def run(direc, unit = 'keV'):
     if not os.path.exists(direc):
         return
@@ -113,6 +114,7 @@ def run(direc, unit = 'keV'):
         EendMerge = np.min(Emaxs)
         dfMergeT = pd.DataFrame()
         dfMergeF = pd.DataFrame()
+
         for c,file in enumerate(dfmergedct):
             basefileT = file.replace('.dat','T')
             basefileF = file.replace('.dat','F')
@@ -124,9 +126,12 @@ def run(direc, unit = 'keV'):
                 muFluo = dfmergedct[file]['muF'].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
                 groupF = normalise(ds)
+                e0 = groupF.e0
+                edgeStep = groupF.edge_step
                 fileF = f'norm/fluo/{basefileF}.nor'
                 print(fileF)
-                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = f'{headers[c]}Energy({unit}) mu_norm',fmt = '%.5f')
+                spectrumHeader = f'{headers[c]}edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
+                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
                 if c == 0:
                     dfMergeF[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values
                     dfMergeF = dfMergeF.set_index(f'energy_offset({unit})')
@@ -135,9 +140,12 @@ def run(direc, unit = 'keV'):
                 muT =  dfmergedct[file]['muT'].loc[minindex:].values
                 ds = pd.Series(index = E[minindex:],data = muT)
                 groupT = normalise(ds)
+                e0 = groupT.e0
+                edgeStep = groupT.edge_step
                 fileT = f'norm/trans/{basefileT}.nor'
+                spectrumHeader = f'{headers[c]}edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
                 print(fileT)
-                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = f'{headers[c]}Energy({unit}) mu_norm',fmt = '%.5f')
+                np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
                 if c == 0:
                     dfMergeT[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values
                     dfMergeT = dfMergeT.set_index(f'energy_offset({unit})')
@@ -149,8 +157,11 @@ def run(direc, unit = 'keV'):
             basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T',file)
             dfmergeTrans.to_csv(f'merge/{basefileTmerge}_merge.dat',sep = ' ')
             groupTmerge = normalise(dfmergeTrans)
+            e0 = groupTmerge.e0
+            edgeStep = groupTmerge.edge_step
             fileTmerge = f'merge/{basefileTmerge}.nor'
-            np.savetxt(fileTmerge,np.array([dfmergeTrans.index.values,groupTmerge.flat]).transpose(),header = f'Energy({unit}) mu_norm',fmt = '%.5f')
+            spectrumHeader = f'edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
+            np.savetxt(fileTmerge,np.array([dfmergeTrans.index.values,groupTmerge.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
 
         if True in fluoList:
             dfmergeFluo = dfMergeF.mean(axis = 1)
@@ -159,7 +170,10 @@ def run(direc, unit = 'keV'):
             dfmergeFluo.to_csv(f'merge/{basefileFmerge}_merge.dat', sep = ' ')
             groupFmerge = normalise(dfmergeFluo)
             fileFmerge = f'merge/{basefileFmerge}.nor'
-            np.savetxt(fileFmerge,np.array([dfmergeFluo.index.values,groupFmerge.flat]).transpose(),header = f'Energy({unit}) mu_norm',fmt = '%.5f')
+            e0 = groupFmerge.e0
+            edgeStep = groupFmerge.edge_step
+            spectrumHeader = f'edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
+            np.savetxt(fileFmerge,np.array([dfmergeFluo.index.values,groupFmerge.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
             
 if __name__ == '__main__':
     run(direc = direc)
