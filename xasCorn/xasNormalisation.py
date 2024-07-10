@@ -86,16 +86,21 @@ def run(direc, unit = 'keV'):
             header = ''.join(f.readlines()[:2]).replace('#','')
             f.close()
             headers.append(header)
-
+            fluorescence = False
+            transmission = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
-            if muFheader in df.columns:
-                fluorescence = True
-            else:
-                fluorescence = False
+            monCounter = [col for col in df.columns if monPattern in col][0]
+            monValues = df[monCounter].values
+            if muFheader in df.columns and np.min(monValues) >= 1:
+                values = df[fluorescenceCounter].values
+                if np.max(values) > 100:
+                    fluorescence = True
             if muTheader in df.columns:
-                transmission = True
-            else:
-                transmission = False
+                i1counter = [col for col in df.columns if ion1Pattern in col][0]
+                i1values = df[i1counter].values
+                if np.min(i1values) >= 1:
+                    transmission = True
+                
             fluoList.append(fluorescence)
             transmissionList.append(transmission)
             dfmergedct[file] = pd.DataFrame()
@@ -140,9 +145,13 @@ def run(direc, unit = 'keV'):
                 muT =  dfmergedct[file]['muT'].loc[minindex:].values
                 ds = pd.Series(index = E[minindex:],data = muT)
                 groupT = normalise(ds)
+                fileT = f'norm/trans/{basefileT}.nor'
+                if len(groupT.flat) != len(E[minindex:]):
+                    print(f'normalisation for {fileT} cut some data, skipping')
+                    continue
                 e0 = groupT.e0
                 edgeStep = groupT.edge_step
-                fileT = f'norm/trans/{basefileT}.nor'
+                
                 spectrumHeader = f'{headers[c]}edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
                 print(fileT)
                 np.savetxt(fileT,np.array([E[minindex:],groupT.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
