@@ -146,26 +146,30 @@ def regrid(coldir, unit = 'keV'):
         unit = 'keV'
     for c,file in enumerate(files):
         basefile = os.path.basename(file)
-        dfFilteredDct[basefile] = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
+        df = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
+        minindex = np.argmin(df.index.values)
+        dfFilteredDct[basefile]= df.iloc[minindex:]
         f = open(file,'r')
         lines = f.readlines()
         f.close()
         header = ''.join([line for line in lines if '#' in line])
         headers.append(header)
     ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct]
-
+    ZEmins = np.array([np.min(dfFilteredDct[file].index.values) for file in dfFilteredDct])
+    greatestMin = np.max(ZEmins)
     ZEindex = ZElens.index(max(ZElens))
     ZEkey = list(dfFilteredDct.keys())[ZEindex]
     ZE = dfFilteredDct[ZEkey].index.values
     spacing = np.round((ZE[-1] - ZE[0])/(len(ZE)-1),6)
     
     no_tries = 30
-    grid = np.arange(ZE[0].round(5),ZE[-1].round(5),spacing)
+    grid = np.round(np.arange((greatestMin+spacing),ZE[-1],spacing),5)
+    
     for c, file in enumerate(dfFilteredDct):
         ZEmin = 0
         ZEmax = -1
-        Emin = ZE[0]
-        Emax = ZE[-1]
+        Emin = grid[0]
+        Emax = grid[-1]
         newfilerg = f'{coldir}/regrid/{file}'
         if len(dfFilteredDct[file].index.values) < len(grid) - no_tries:
             print(f'{file} too short, couldn\'t be regridded')
@@ -184,8 +188,7 @@ def regrid(coldir, unit = 'keV'):
         while Emax > dfFilteredDct[file].index.values[-1]:
             ZEmax -= 1
             Emax = grid[ZEmax]
-        
-        newgrid = grid[ZEmin+1:ZEmax]
+        newgrid = grid[ZEmin:ZEmax]
         newgrid = newgrid.round(5)
         monCounter = [c for c in dfFilteredDct[file].columns if monPattern in c][0]
         i1counters = [c for c in dfFilteredDct[file].columns if ion1Pattern in c]

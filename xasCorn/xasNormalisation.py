@@ -89,16 +89,14 @@ def run(direc, unit = 'keV'):
             fluorescence = False
             transmission = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
-            monCounter = [col for col in df.columns if monPattern in col][0]
-            monValues = df[monCounter].values
-            if muFheader in df.columns and np.min(monValues) >= 1:
+
+            if muFheader in df.columns:
                 values = df[fluorescenceCounter].values
-                if np.max(values) > 100:
+                if np.max(values) > 100 and not np.inf in values:
                     fluorescence = True
             if muTheader in df.columns:
-                i1counter = [col for col in df.columns if ion1Pattern in col][0]
-                i1values = df[i1counter].values
-                if np.min(i1values) >= 1:
+                values = df[muTheader].values
+                if not np.inf in values:
                     transmission = True
                 
             fluoList.append(fluorescence)
