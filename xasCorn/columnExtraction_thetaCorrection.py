@@ -21,8 +21,7 @@ ion1Pattern = 'ion_1'
 counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3',fluoCounter]
 counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
 xColumns = ['ZapEnergy','TwoTheta']
-signalCounters = ['mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
-monCounters = [c for c in signalCounters if monPattern in c]
+monCounters = ['mon_1', 'mon_2', 'mon_3', 'mon_4']
 i1counters = ['ion_1_1', 'ion_1_2', 'ion_1_3', 'Det_1', 'Det_2', 'Det_3']
 i2name = 'I2'
 
