@@ -18,12 +18,13 @@ digits = 4
 fluoCounter = 'xmap_roi00'
 monPattern = 'mon_'
 ion1Pattern = 'ion_1'
-counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
+counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3',fluoCounter]
 counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
 xColumns = ['ZapEnergy','TwoTheta']
 signalCounters = ['mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1',fluoCounter]
 monCounters = [c for c in signalCounters if monPattern in c]
-i1counters = [c for c in signalCounters if ion1Pattern in c]
+i1counters = ['ion_1_1', 'ion_1_2', 'ion_1_3', 'Det_1', 'Det_2', 'Det_3']
+i2name = 'I2'
 
 def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
@@ -101,14 +102,18 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             
             dfFiltered[usedMon] = df[usedMon].values
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-            if np.max(dfFiltered[usedMon].values) < timeStep*3000:
+            if np.max(dfFiltered[usedMon].values) < timeStep*10000:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
-            usedI1 = df[i1counters].max().idxmax()
-            dfFiltered[usedI1] = df[usedI1].values
-            if np.max(dfFiltered[usedI1].values) < 3000*timeStep:
-                dfFiltered = dfFiltered.drop(columns=[usedI1])
+            usedI1s = [col for col in i1counters if np.max(df[col].values) > 10000*timeStep]
+            if usedI1s:
+                usedI1 = usedI1s[0] #df[i1counters].max().idxmax()
+                dfFiltered[usedI1] = df[usedI1].values
+            usedI2 = ""
+            if len(usedI1s) > 1:
+                usedI2 = usedI1s[1]
+                dfFiltered[i2name] = df[usedI2].values
             if fluoCounter in columns:
                 if df[fluoCounter].values.max() > 300*timeStep:
                     dfFiltered[fluoCounter] = df[fluoCounter].values
@@ -191,20 +196,25 @@ def regrid(coldir, unit = 'keV'):
         newgrid = grid[ZEmin:ZEmax]
         newgrid = newgrid.round(5)
         monCounter = [c for c in dfFilteredDct[file].columns if monPattern in c][0]
-        i1counters = [c for c in dfFilteredDct[file].columns if ion1Pattern in c]
-        if i1counters:
-            i1counter = i1counters[0]
+        usedi1counters = [c for c in dfFilteredDct[file].columns if c in i1counters]
+        if usedi1counters:
+            i1counter = usedi1counters[0]
             muT = np.log(dfFilteredDct[file][monCounter].values/dfFilteredDct[file][i1counter].values)
             gridfunc = interp1d(dfFilteredDct[file].index.values,muT)
             muTregrid = gridfunc(newgrid)
             regridDF['muT'] = muTregrid
+        if i2name in dfFilteredDct[file].columns:
+            mu2 = np.log(dfFilteredDct[file][i1counter].values/dfFilteredDct[file][i2name].values)
+            gridfunc = interp1d(dfFilteredDct[file].index.values,mu2)
+            mu2regrid  = gridfunc(newgrid)
+            regridDF['mu2'] = mu2regrid
         if fluoCounter in dfFilteredDct[file].columns:
             muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
             gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
             muFregrid = gridfunc(newgrid)
             regridDF['muF'] = muFregrid
         for counter in dfFilteredDct[file].columns:
-            if monPattern in counter or ion1Pattern in counter or fluoCounter in counter:
+            if monPattern in counter or counter in i1counters or fluoCounter in counter:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
                 regridDF[counter] = gridfunc(newgrid).round(1)
         if unit == 'eV':
