@@ -117,7 +117,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             if fluoCounter in columns:
                 if df[fluoCounter].values.max() > 300*timeStep:
                     dfFiltered[fluoCounter] = df[fluoCounter].values
-            if usedI1 not in dfFiltered.columns and fluoCounter not in dfFiltered.columns:
+            if not usedI1s and fluoCounter not in dfFiltered.columns:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
