@@ -214,7 +214,7 @@ def regrid(coldir, unit = 'keV'):
             muFregrid = gridfunc(newgrid)
             regridDF['muF'] = muFregrid
         for counter in dfFilteredDct[file].columns:
-            if monPattern in counter or counter in i1counters or fluoCounter in counter:
+            if monPattern in counter or counter in i1counters or fluoCounter in counter or counter == i2name:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
                 regridDF[counter] = gridfunc(newgrid).round(1)
         if unit == 'eV':
