@@ -18,7 +18,7 @@ digits = 4
 fluoCounter = 'xmap_roi00'
 monPattern = 'mon_'
 ion1Pattern = 'ion_1'
-counterNames = ['ZapEnergy','TwoTheta','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3',fluoCounter]
+counterNames = ['ZapEnergy','TwoTheta', 'mon_2','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3',fluoCounter]
 counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
 xColumns = ['ZapEnergy','TwoTheta']
 monCounters = ['mon_1', 'mon_2', 'mon_3', 'mon_4']
@@ -101,7 +101,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             
             dfFiltered[usedMon] = df[usedMon].values
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-            if np.max(dfFiltered[usedMon].values) < timeStep*10000:
+            if np.max(dfFiltered[usedMon].values) < timeStep*10000 or np.min(dfFiltered[usedMon].values) < 10*timeStep:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
