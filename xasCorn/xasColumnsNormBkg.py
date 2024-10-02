@@ -28,7 +28,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                         help = 'theta offset to apply to monochromator for energy correction')
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     args = parser.parse_args()
-
+    thetaOffset = args.thetaOffset
     direc = os.path.realpath(args.directory)
     if direc[-1] == '/' or direc[-1] == '\\':
         direc = direc[:-1]
