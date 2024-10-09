@@ -114,7 +114,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
                 usedI2 = usedI1s[1]
                 dfFiltered[i2name] = df[usedI2].values
             if fluoCounter in columns:
-                if df[fluoCounter].values.max() > 300*timeStep:
+                if df[fluoCounter].values.max() > 500*timeStep:
                     dfFiltered[fluoCounter] = df[fluoCounter].values
             if not usedI1s and fluoCounter not in dfFiltered.columns:
                 if os.path.exists(newfile):
@@ -130,15 +130,23 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     fileDct[file] = [filemtime,spectrum_count]
     
 
-def regrid(coldir, unit = 'keV'):
+def regrid(coldir, unit = 'keV', averaging = 1):
     if not os.path.exists(coldir):
         return
     print(f'regridding {coldir}')
     print(coldir)
     files = glob(f'{coldir}/*.dat')
     files.sort()
+
+
     if len(files) == 0:
         return
+    if not os.path.exists(f'{coldir}/regrid'):
+        os.makedirs(f'{coldir}/regrid')
+    avdir = f'{coldir}/regridAv{averaging}/'
+    if averaging > 1 and not os.path.exists(avdir):
+        os.makedirs(avdir)
+
     dfFilteredDct = {}
     headers = []
     if unit == 'keV':
@@ -168,13 +176,18 @@ def regrid(coldir, unit = 'keV'):
     
     no_tries = 30
     grid = np.round(np.arange((greatestMin+spacing),ZE[-1],spacing),5)
-    
+    averagingCount = 0
+    averagingDct = {}
+    avheader = ''
+    fluoAv = []
+    transAv = []
     for c, file in enumerate(dfFilteredDct):
         ZEmin = 0
         ZEmax = -1
         Emin = grid[0]
         Emax = grid[-1]
         newfilerg = f'{coldir}/regrid/{file}'
+
         if len(dfFilteredDct[file].index.values) < len(grid) - no_tries:
             print(f'{file} too short, couldn\'t be regridded')
             if os.path.exists(newfilerg):
@@ -197,6 +210,13 @@ def regrid(coldir, unit = 'keV'):
         monCounter = [c for c in dfFilteredDct[file].columns if monPattern in c][0]
         usedi1counters = [c for c in dfFilteredDct[file].columns if c in i1counters]
         if usedi1counters:
+            trans = True
+        else:
+            trans = False
+        fluo =  fluoCounter in dfFilteredDct[file].columns
+        fluoAv.append(fluo)
+        transAv.append(trans)
+        if trans:
             i1counter = usedi1counters[0]
             muT = np.log(dfFilteredDct[file][monCounter].values/dfFilteredDct[file][i1counter].values)
             gridfunc = interp1d(dfFilteredDct[file].index.values,muT)
@@ -207,7 +227,7 @@ def regrid(coldir, unit = 'keV'):
             gridfunc = interp1d(dfFilteredDct[file].index.values,mu2)
             mu2regrid  = gridfunc(newgrid)
             regridDF['mu2'] = mu2regrid
-        if fluoCounter in dfFilteredDct[file].columns:
+        if fluo:
             muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
             gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
             muFregrid = gridfunc(newgrid)
@@ -220,13 +240,70 @@ def regrid(coldir, unit = 'keV'):
             newgrid = (newgrid*escale).round(2)
         regridDF.index = newgrid
         regridDF.index.name = f'energy_offset({unit})'
+
         if len(regridDF.columns) == 0:
             continue
         regridDF.to_csv(newfilerg,sep = ' ',mode = 'a')
 
+        if averaging <= 1:
+            continue
+
+        averagingDct[averagingCount] = {}
+        averagingDct[averagingCount]['ZEmin'] = ZEmin
+        averagingDct[averagingCount]['ZEmax'] = ZEmax
+        averagingDct[averagingCount]['ZapEnergy'] = newgrid
+        avheader += headers[c]
+        if usedi1counters:
+            averagingDct[averagingCount]['muT'] = regridDF['muT'].values
+        if fluo:
+            averagingDct[averagingCount]['muF'] = regridDF['muF'].values
+            averagingDct[averagingCount][fluoCounter] = regridDF[fluoCounter].values
+        if averagingCount == averaging-1:
+            averagingCount = -1
+            zemins = np.array([averagingDct[i]['ZapEnergy'][0] for i in np.arange(averaging, dtype = np.uint8)])
+            zemaxs = np.array([averagingDct[i]['ZapEnergy'][-1] for i in np.arange(averaging, dtype = np.uint8)])
+            zeminIs = np.array([averagingDct[i]['ZEmin'] for i in np.arange(averaging, dtype = np.uint8)])
+            zemaxIs = np.array([averagingDct[i]['ZEmax'] for i in np.arange(averaging, dtype = np.uint8)])
+            zeminmax = np.max(zemins)
+            zemaxmin = np.min(zemaxs)
+            zeminI = np.max(zeminIs)
+            zemaxI = np.min(zemaxIs)
+            avGrid = grid[zeminI:zemaxI]
+            avMuT = np.empty(shape = (len(avGrid),averaging))
+            avMuF = np.empty(shape = (len(avGrid),averaging))
+            avFluoRaw = np.empty(shape = (len(avGrid),averaging))
+            for i in range(averaging):
+                zapenergy = averagingDct[i]['ZapEnergy']
+                minindex = np.argmin(np.abs(zapenergy - zeminmax))
+                maxindex = np.argmin(np.abs(zapenergy - zemaxmin))
+                if transAv[i]:
+                    avMuT[:,i] = averagingDct[i]['muT'][minindex:maxindex+1]
+                if fluoAv[i]:
+                    avMuF[:,i] = averagingDct[i]['muF'][minindex:maxindex+1]
+                    avFluoRaw[:,i] = averagingDct[i][fluoCounter][minindex:maxindex+1]
+            avDf = pd.DataFrame()
+            avDf[f'ZapEnergy({unit})'] = avGrid
+            if transAv[i]:
+                avMuT = np.average(avMuT,axis = 1)
+                avDf['muT'] = avMuT
+            if fluoAv[i]:
+                avMuF = np.average(avMuF, axis = 1)
+                avFluoRaw = np.average(avFluoRaw,axis = 1)
+                avDf['muF'] = avMuF
+                avDf[fluoCounter] = avFluoRaw
+            
+            fname = f'{avdir}/{file}'
+            f = open(fname,'w')
+            f.write(avheader)
+            f.close()
+            avDf.to_csv(fname, index = False, mode = 'a', sep = ' ')
+            avheader = ''
+            fluoAv = []
+            transAv = []
+        averagingCount += 1
 
 
-def run(direc,thetaOffset=0, unit = 'keV'):
+def run(direc,thetaOffset=0, unit = 'keV', averaging = 1):
 
     os.chdir(direc)
     fileDct = {} #dictionary with files as keys, values: [modified time, last spectrum]
@@ -248,7 +325,7 @@ def run(direc,thetaOffset=0, unit = 'keV'):
             processFile(file, fileDct, currentdir,  thetaOffset)
             basename = os.path.splitext(os.path.basename(file))[0]
 
-            regrid(f'{currentdir}columns/{basename}', unit = unit)
+            regrid(f'{currentdir}columns/{basename}', unit = unit, averaging=averaging)
             
     return fileDct
 

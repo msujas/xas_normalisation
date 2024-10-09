@@ -89,11 +89,11 @@ def run(direc, unit = 'keV'):
             fluorescence = False
             transmission = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
-
+            
             if muFheader in df.columns:
                 values = df[fluorescenceCounter].values
-                if np.max(values) > 100 and not np.inf in values:
-                    fluorescence = True
+                fluorescence = not(np.inf in values or np.max(values) < 100)
+
             if muTheader in df.columns:
                 values = df[muTheader].values
                 if not np.inf in values:

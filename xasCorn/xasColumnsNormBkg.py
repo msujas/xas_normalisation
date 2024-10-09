@@ -27,19 +27,21 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     parser.add_argument('-to','--thetaOffset', type=float, default=thetaOffset, 
                         help = 'theta offset to apply to monochromator for energy correction')
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
+    parser.add_argument('-av', '--averaging', default=1, type = int, help='number of spectra to average over, default 1 (no averaging)')
     args = parser.parse_args()
     thetaOffset = args.thetaOffset
     direc = os.path.realpath(args.directory)
     if direc[-1] == '/' or direc[-1] == '\\':
         direc = direc[:-1]
     unit = args.unit
+    averaging = args.averaging
     if unit != 'keV' and unit != 'eV':
         print('unit must be "keV" or "eV"')
         return
     print(direc)
 
     print('running column extraction')
-    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit)
+    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging)
     print('running normalisation')
     xasNormalisation.run(direc, unit = unit)
     repeat = True
@@ -66,7 +68,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     print(f'running column extraction on {file}')
                     columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)
                     basename = os.path.splitext(os.path.basename(file))[0]
-                    columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}', unit = unit)
+                    columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}', unit = unit, averaging=averaging)
                     columnDir = os.path.basename(file).replace('.dat','')
                     normdir = f'{root}/columns/{columnDir}'
                     if os.path.exists(normdir):
