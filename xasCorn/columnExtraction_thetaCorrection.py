@@ -306,7 +306,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
         averagingCount += 1
 
 
-def run(direc,thetaOffset=0, unit = 'keV', averaging = 1):
+def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None):
 
     os.chdir(direc)
     fileDct = {} #dictionary with files as keys, values: [modified time, last spectrum]
@@ -320,7 +320,13 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1):
         if thetaOffset != 0:
             coldir = f'{currentdir}columns{thetaOffset:.3f}'
         os.chdir(currentdir)
-        datfiles = glob('*.dat')
+
+        if elements:
+            datfiles = []
+            for e in elements:
+                datfiles += glob(f'*_{e}_*.dat')
+        else:
+            datfiles = glob('*.dat')
         datfiles = [currentdir + file for file in datfiles]
 
         if len(datfiles) == 0:

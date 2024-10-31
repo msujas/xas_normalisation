@@ -28,8 +28,13 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                         help = 'theta offset to apply to monochromator for energy correction')
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     parser.add_argument('-av', '--averaging', default=1, type = int, help='number of spectra to average over, default 1 (no averaging)')
+    parser.add_argument('-e', '--elements',default=None, type = str, help = 'comma separated list of elements, e.g. "-e Fe,Cu", if nothing given will search all elements')
     args = parser.parse_args()
     thetaOffset = args.thetaOffset
+    elements = args.elements
+    if elements:
+        elements = elements.split(',')
+    
     direc = os.path.realpath(args.directory)
     if direc[-1] == '/' or direc[-1] == '\\':
         direc = direc[:-1]
@@ -44,9 +49,9 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
         columndirname = f'columns{thetaOffset:.3f}'
 
     print('running column extraction')
-    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging)
+    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements)
     print('running normalisation')
-    xasNormalisation.run(direc, unit = unit, coldirname=columndirname)
+    xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements)
     repeat = True
     while True:
         if repeat == True:
@@ -57,7 +62,14 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
             if 'columns' in root:
                 continue
             os.chdir(currentdir)
-            datfiles = glob(f'*.dat')
+            
+            
+            if elements:
+                datfiles = []
+                for e in elements:
+                    datfiles += glob(f'*_{e}_*.dat')
+            else:
+                datfiles = glob(f'*.dat')
             datfiles = [currentdir + file for file in datfiles]
             for file in datfiles:
                 if 'tempLog' in file:
@@ -76,7 +88,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     normdir = f'{root}/{columndirname}/{columnDir}'
                     if os.path.exists(normdir):
                         print(f'running normalisation in {normdir}')
-                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname)
+                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname, elements=elements)
 
         time.sleep(waitTime)
 

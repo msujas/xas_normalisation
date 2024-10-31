@@ -48,7 +48,7 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     return group
 
 
-def run(direc, unit = 'keV', coldirname = 'columns'):
+def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
     if not os.path.exists(direc):
         return
     os.chdir(direc)
@@ -64,6 +64,14 @@ def run(direc, unit = 'keV', coldirname = 'columns'):
             continue
         if coldirname == 'columns' and ('columns-' in root or re.search('colummns[0-9]',root)):
             continue
+        if elements:
+            skip = True
+            for e in elements:
+                if f'_{e}_' in root:
+                    skip = False
+                    break
+            if skip:
+                continue
         os.chdir(root)
         if not os.path.exists('merge/'):
             os.makedirs('merge/')
