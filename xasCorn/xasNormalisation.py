@@ -62,6 +62,8 @@ def run(direc, unit = 'keV', coldirname = 'columns'):
     for root,dirs,files in os.walk(os.getcwd()):
         if not 'regrid' in root or coldirname not in root or 'merge' in root or 'norm' in root:
             continue
+        if coldirname == 'columns' and ('columns-' in root or re.search('colummns[0-9]',root)):
+            continue
         os.chdir(root)
         if not os.path.exists('merge/'):
             os.makedirs('merge/')
