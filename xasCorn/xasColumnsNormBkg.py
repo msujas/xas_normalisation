@@ -39,11 +39,14 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
         print('unit must be "keV" or "eV"')
         return
     print(direc)
+    columndirname = 'columns'
+    if thetaOffset != 0:
+        columndirname = f'columns{thetaOffset:.3f}'
 
     print('running column extraction')
     fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging)
     print('running normalisation')
-    xasNormalisation.run(direc, unit = unit)
+    xasNormalisation.run(direc, unit = unit, coldirname=columndirname)
     repeat = True
     while True:
         if repeat == True:
@@ -68,12 +71,12 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     print(f'running column extraction on {file}')
                     columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)
                     basename = os.path.splitext(os.path.basename(file))[0]
-                    columnExtraction_thetaCorrection.regrid(f'{currentdir}columns/{basename}', unit = unit, averaging=averaging)
+                    columnExtraction_thetaCorrection.regrid(f'{currentdir}{columndirname}/{basename}', unit = unit, averaging=averaging)
                     columnDir = os.path.basename(file).replace('.dat','')
-                    normdir = f'{root}/columns/{columnDir}'
+                    normdir = f'{root}/{columndirname}/{columnDir}'
                     if os.path.exists(normdir):
-                        print(f'running normalisation in {root}/columns/{columnDir}')
-                        xasNormalisation.run(f'{root}/columns/{columnDir}', unit = unit)
+                        print(f'running normalisation in {normdir}')
+                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname)
 
         time.sleep(waitTime)
 

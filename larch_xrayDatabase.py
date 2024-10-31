@@ -19,7 +19,7 @@ def kev_to_angle(energykeV):
     
 edges = ['K','L1','L2','L3','main']
 edgesdf = pd.DataFrame(columns = edges)
-thetaOffset = 0.07 #degrees
+thetaOffset = 0.115 #degrees
 for n in range(22,84):
     element = atomic_symbol(n)
     elementEdges = []
@@ -73,7 +73,7 @@ for e in edgesdf.index.values:
     xanes_programDFside.loc[e] = [startXanesSide,stopXanesSide,step_xanes]
     exafs_programDFside.loc[e] = [startExafsSide,stopExafsSide,step_exafs]
 
-    if edgesdf.loc[e]['K'] > 35 and edgesdf.loc[e]['K'] < 41:
+    if edgesdf.loc[e]['K'] > 35 and edgesdf.loc[e]['K'] < 65:
         element_name = f'{e}_K'
         edgeValue = edgesdf.loc[e]['K']
         startDiff = edgeStart(edgeValue)

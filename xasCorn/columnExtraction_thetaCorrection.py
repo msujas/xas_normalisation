@@ -41,9 +41,12 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
         return
     
     basename = os.path.splitext(os.path.basename(file))[0]
-    if not os.path.exists(currentdir+'columns/'):
-        os.makedirs(currentdir+'columns/')
-    newdir = f'{currentdir}/columns/{basename}/'
+    coldir = currentdir+'columns/'
+    if thetaOffset != 0:
+        coldir = currentdir+f'columns{thetaOffset:.3f}/'
+    if not os.path.exists(coldir):
+        os.makedirs(coldir)
+    newdir = f'{coldir}/{basename}/'
     if not os.path.exists(newdir):
         os.makedirs(newdir)
     if not os.path.exists(f'{newdir}/regrid/'):
@@ -313,7 +316,9 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1):
             continue
         print(root)
         currentdir = root + '/'
-
+        coldir = f'{currentdir}columns'
+        if thetaOffset != 0:
+            coldir = f'{currentdir}columns{thetaOffset:.3f}'
         os.chdir(currentdir)
         datfiles = glob('*.dat')
         datfiles = [currentdir + file for file in datfiles]
@@ -325,7 +330,7 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1):
             processFile(file, fileDct, currentdir,  thetaOffset)
             basename = os.path.splitext(os.path.basename(file))[0]
 
-            regrid(f'{currentdir}columns/{basename}', unit = unit, averaging=averaging)
+            regrid(f'{coldir}/{basename}', unit = unit, averaging=averaging)
             
     return fileDct
 
