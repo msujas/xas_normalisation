@@ -15,6 +15,10 @@ options:
   -h, --help            show this help message and exit<br>
   -to THETAOFFSET, --thetaOffset THETAOFFSET
                         theta offset to apply to monochromator for energy correction<br>
-  -u UNIT, --unit UNIT  keV or eV (default keV) for the regrid and normalised files
+  -u UNIT, --unit UNIT  keV or eV (default keV) for the regrid and normalised files<br>
+  -av AVERAGING, --averaging AVERAGING<br>
+                        number of spectra to average over, default 1 (no averaging)<br>
+  -e ELEMENTS, --elements ELEMENTS<br>
+                        comma separated list of elements, e.g. "-e Fe,Cu", if nothing given will search all elements<br>
 
 It uses Larch (https://xraypy.github.io/xraylarch/index.html, https://iopscience.iop.org/article/10.1088/1742-6596/430/1/012007) to normalise the data.
