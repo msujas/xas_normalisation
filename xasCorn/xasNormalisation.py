@@ -75,10 +75,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
         os.chdir(root)
         if not os.path.exists('merge/'):
             os.makedirs('merge/')
-        if not os.path.exists('norm/trans'):
-            os.makedirs('norm/trans')
-        if not os.path.exists('norm/fluo'):
-            os.makedirs('norm/fluo')
+
         datfiles = [file for file in files if file.endswith('.dat')]
         datfiles.sort()
         if len(datfiles) == 0:
@@ -127,6 +124,12 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
         EendMerge = np.min(Emaxs)
         dfMergeT = pd.DataFrame()
         dfMergeF = pd.DataFrame()
+        if True in transmissionList:
+            if not os.path.exists('norm/trans'):
+                os.makedirs('norm/trans')
+        if True in fluoList:
+            if not os.path.exists('norm/fluo'):
+                os.makedirs('norm/fluo')
 
         for c,file in enumerate(dfmergedct):
             basefileT = file.replace('.dat','T')
