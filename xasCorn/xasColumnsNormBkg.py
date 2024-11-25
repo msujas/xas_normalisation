@@ -29,11 +29,15 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     parser.add_argument('-av', '--averaging', default=1, type = int, help='number of spectra to average over, default 1 (no averaging)')
     parser.add_argument('-e', '--elements',default=None, type = str, help = 'comma separated list of elements, e.g. "-e Fe,Cu", if nothing given will search all elements')
+    parser.add_argument('-ee', '--excludeElements',default=None, type = str, help = 'comma separated list of elements to exclude, e.g. "-e Fe,Cu", if nothing given will not exculde any (doesn\'t do anything if used with -e)')
     args = parser.parse_args()
     thetaOffset = args.thetaOffset
     elements = args.elements
+    excludeElements = args.excludeElements
     if elements:
         elements = elements.split(',')
+    if excludeElements:
+        excludeElements = excludeElements.split(',')
     
     direc = os.path.realpath(args.directory)
     if direc[-1] == '/' or direc[-1] == '\\':
@@ -49,9 +53,9 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
         columndirname = f'columns{thetaOffset:.3f}'
 
     print('running column extraction')
-    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements)
+    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements, excludeElements=excludeElements)
     print('running normalisation')
-    xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements)
+    xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
     repeat = True
     while True:
         if repeat == True:
@@ -68,6 +72,12 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                 datfiles = []
                 for e in elements:
                     datfiles += glob(f'*_{e}_*.dat')
+            elif excludeElements:
+                datfiles = glob(f'*.dat')
+                for file in datfiles:
+                    for e in excludeElements:
+                        if f'_{e}_' in file:
+                            datfiles.remove(file)
             else:
                 datfiles = glob(f'*.dat')
             datfiles = [currentdir + file for file in datfiles]
@@ -88,7 +98,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     normdir = f'{root}/{columndirname}/{columnDir}'
                     if os.path.exists(normdir):
                         print(f'running normalisation in {normdir}')
-                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname, elements=elements)
+                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
 
         time.sleep(waitTime)
 

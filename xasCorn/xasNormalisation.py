@@ -28,8 +28,13 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     else:
         scale = 1
     group = Group(energy = energy*scale, mu = ds.values)
-    
-    find_e0(group = group, energy = group.energy, mu = group.mu)
+    try:
+        find_e0(group = group, energy = group.energy, mu = group.mu)
+    except ValueError as e:
+        print('couldn\'t normalise file')
+        raise ValueError
+        
+
     pre1 = group.energy[0] - group.e0
     pre2Function = -(group.e0*0.0033 + 4.04) #-30
     if pre2Function - pre1 > 30:
@@ -48,7 +53,7 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     return group
 
 
-def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
+def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeElements = None, averaging = 1):
     if not os.path.exists(direc):
         return
     os.chdir(direc)
@@ -62,6 +67,11 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
     for root,dirs,files in os.walk(os.getcwd()):
         if not 'regrid' in root or coldirname not in root or 'merge' in root or 'norm' in root:
             continue
+        if averaging < 2 and 'regridAv' in root:
+            continue
+        elif averaging > 1 and 'regridAv' in root and f'regridAv{averaging}' not in root:
+            continue 
+
         if coldirname == 'columns' and ('columns-' in root or re.search('colummns[0-9]',root)):
             continue
         if elements:
@@ -69,6 +79,14 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
             for e in elements:
                 if f'_{e}_' in root:
                     skip = False
+                    break 
+            if skip:
+                continue
+        elif excludeElements:
+            skip = False
+            for e in excludeElements:
+                if f'_{e}_' in root:
+                    skip = True
                     break
             if skip:
                 continue
@@ -90,12 +108,15 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
         for c,file in enumerate(datfiles):
             
             f = open(file,'r')
-            header = ''.join(f.readlines()[:2]).replace('#','')
+            header = [line for line in f.readlines() if '#' in line]
+            colnames = header[-1].split()
+            header = header[:-1]
+            header = ''.join(header).replace('#','')
             f.close()
             headers.append(header)
             fluorescence = False
             transmission = False
-            df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, header = 0)
+            df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, names = colnames)
             
             if muFheader in df.columns:
                 values = df[fluorescenceCounter].values
@@ -141,7 +162,11 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
             if fluoList[c]:
                 muFluo = dfmergedct[file]['muF'].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
-                groupF = normalise(ds)
+                try:
+                    groupF = normalise(ds)
+                except ValueError:
+                    print(f'couldn\'t normalise {basefileF}.nor')
+                    continue
                 e0 = groupF.e0
                 edgeStep = groupF.edge_step
                 fileF = f'norm/fluo/{basefileF}.nor'
@@ -155,7 +180,11 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None):
             if transmissionList[c]:
                 muT =  dfmergedct[file]['muT'].loc[minindex:].values
                 ds = pd.Series(index = E[minindex:],data = muT)
-                groupT = normalise(ds)
+                try:
+                    groupT = normalise(ds)
+                except ValueError:
+                    print(f'couldn\'t normalise {basefileT}.nor')
+                    continue
                 fileT = f'norm/trans/{basefileT}.nor'
                 if len(groupT.flat) != len(E[minindex:]):
                     print(f'normalisation for {fileT} cut some data, skipping')

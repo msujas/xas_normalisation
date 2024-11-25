@@ -5,7 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\May2024carlos'
+direc = r'C:\Users\kenneth1a\Documents\beamlineData\xasTest'
 thetaOffset = 0
 
 
@@ -71,6 +71,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
 
         elif '#T' in line and onscan:
             timeStep = int(line.split()[1])/1000
+            newstring += line
         elif '#D' in line and onscan:
             newstring += line
         elif '#L' in line and onscan:
@@ -78,7 +79,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             columns = line.replace('#L ','').split()
             scanStart = True
             lineno = 0
-        elif scanStart and '#' not in line:
+        elif scanStart and '#' not in line and line:
             lineSplit = np.array([np.fromstring(line,sep = ' ')])
             if lineno == 0:
                 array = lineSplit
@@ -87,7 +88,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             else:
                 array = np.append(array,lineSplit,axis = 0)
             
-        elif '#C' in line and onscan:
+        elif ('#C' in line or not line) and onscan:
             dfend = c
             scanStart = False
             onscan = False
@@ -99,6 +100,8 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             dfFiltered['Theta_offset'] =  dfFiltered['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
             dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev)
             dfFiltered.set_index('ZapEnergy_offset',inplace = True)
+            dfFiltered.index.name = '#ZapEnergy_offset'
+            energy = dfFiltered.index.values
 
             usedMon = df[monCounters].max().idxmax()
             
@@ -119,7 +122,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             if fluoCounter in columns:
                 if df[fluoCounter].values.max() > 500*timeStep:
                     dfFiltered[fluoCounter] = df[fluoCounter].values
-            if not usedI1s and fluoCounter not in dfFiltered.columns:
+            if (not usedI1s and fluoCounter not in dfFiltered.columns) or np.max(energy) - np.min(energy) < 0.1:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
@@ -160,15 +163,22 @@ def regrid(coldir, unit = 'keV', averaging = 1):
         escale = 1
         unit = 'keV'
     for c,file in enumerate(files):
-        basefile = os.path.basename(file)
-        df = pd.read_csv(file,index_col=0, sep = ' ', comment='#')
-        minindex = np.argmin(df.index.values)
-        dfFilteredDct[basefile]= df.iloc[minindex:]
         f = open(file,'r')
         lines = f.readlines()
         f.close()
-        header = ''.join([line for line in lines if '#' in line])
+        header = [line for line in lines if '#' in line]
+        colnames = header[-1].split()
+        header = ''.join(header[:-1])
         headers.append(header)
+        
+
+        basefile = os.path.basename(file)
+        df = pd.read_csv(file, sep = ' ', comment='#', names = colnames)
+        df = df.set_index(colnames[0])
+        minindex = np.argmin(df.index.values)
+        dfFilteredDct[basefile]= df.iloc[minindex:]
+
+    
     ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct]
     ZEmins = np.array([np.min(dfFilteredDct[file].index.values) for file in dfFilteredDct])
     greatestMin = np.max(ZEmins)
@@ -242,7 +252,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
         if unit == 'eV':
             newgrid = (newgrid*escale).round(2)
         regridDF.index = newgrid
-        regridDF.index.name = f'energy_offset({unit})'
+        regridDF.index.name = f'#energy_offset({unit})'
 
         if len(regridDF.columns) == 0:
             continue
@@ -285,7 +295,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
                     avMuF[:,i] = averagingDct[i]['muF'][minindex:maxindex+1]
                     avFluoRaw[:,i] = averagingDct[i][fluoCounter][minindex:maxindex+1]
             avDf = pd.DataFrame()
-            avDf[f'ZapEnergy({unit})'] = avGrid
+            avDf[f'#ZapEnergy({unit})'] = avGrid
             if transAv[i]:
                 avMuT = np.average(avMuT,axis = 1)
                 avDf['muT'] = avMuT
@@ -306,7 +316,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
         averagingCount += 1
 
 
-def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None):
+def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, excludeElements = None):
 
     os.chdir(direc)
     fileDct = {} #dictionary with files as keys, values: [modified time, last spectrum]
@@ -325,8 +335,17 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None):
             datfiles = []
             for e in elements:
                 datfiles += glob(f'*_{e}_*.dat')
+        elif excludeElements:
+            datfiles = glob('*.dat')
+            for file in files:
+                for e in excludeElements:
+                    if f'_{e}_' in file:
+                        datfiles.remove(file)
+                
+
         else:
             datfiles = glob('*.dat')
+        
         datfiles = [currentdir + file for file in datfiles]
 
         if len(datfiles) == 0:
