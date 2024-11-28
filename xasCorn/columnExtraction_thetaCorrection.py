@@ -227,6 +227,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
         else:
             trans = False
         fluo =  fluoCounter in dfFilteredDct[file].columns
+        i2 = i2name in dfFilteredDct[file].columns
         fluoAv.append(fluo)
         transAv.append(trans)
         if trans:
@@ -235,7 +236,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
             gridfunc = interp1d(dfFilteredDct[file].index.values,muT)
             muTregrid = gridfunc(newgrid)
             regridDF['muT'] = muTregrid
-        if i2name in dfFilteredDct[file].columns:
+        if i2:
             mu2 = np.log(dfFilteredDct[file][i1counter].values/dfFilteredDct[file][i2name].values)
             gridfunc = interp1d(dfFilteredDct[file].index.values,mu2)
             mu2regrid  = gridfunc(newgrid)

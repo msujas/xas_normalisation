@@ -63,6 +63,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
     ion1Pattern = 'ion_1'
     muFheader = 'muF'
     muTheader = 'muT'
+    mu2header = 'mu2'
     
     for root,dirs,files in os.walk(os.getcwd()):
         if not 'regrid' in root or coldirname not in root or 'merge' in root or 'norm' in root:
@@ -104,6 +105,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
         dfmergedct = {}
         fluoList = []
         transmissionList = []
+        mu2list = []
         headers = []
         for c,file in enumerate(datfiles):
             
@@ -116,6 +118,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             headers.append(header)
             fluorescence = False
             transmission = False
+            i2 = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, names = colnames)
             
             if muFheader in df.columns:
@@ -126,9 +129,14 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
                 values = df[muTheader].values
                 if not np.inf in values:
                     transmission = True
+            if mu2header in df.columns:
+                values = df[mu2header].values
+                if not np.inf in values:
+                    i2=True
                 
             fluoList.append(fluorescence)
             transmissionList.append(transmission)
+            mu2list.append(i2)
             dfmergedct[file] = pd.DataFrame()
             Emins = np.append(Emins,df.index.values[0])
             Emaxs = np.append(Emaxs,df.index.values[-1])
@@ -140,11 +148,15 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             if fluorescence:
                 muFluo = df[muFheader].values
                 dfmergedct[file]['muF'] = muFluo
+            if i2:
+                mu2 =  df[mu2header].values
+                dfmergedct[file]['mu2'] = mu2
       
         E0merge = np.max(Emins)
         EendMerge = np.min(Emaxs)
         dfMergeT = pd.DataFrame()
         dfMergeF = pd.DataFrame()
+        dfMergeMu2 = pd.DataFrame()
         if True in transmissionList:
             if not os.path.exists('norm/trans'):
                 os.makedirs('norm/trans')
@@ -199,7 +211,11 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
                     dfMergeT[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values
                     dfMergeT = dfMergeT.set_index(f'energy_offset({unit})')
                 dfMergeT[c] = dfmergedct[file]['muT'].loc[minindex:maxindex].values
-
+            if mu2list[c]:
+                if c == 0:
+                    dfMergeMu2[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values 
+                    dfMergeMu2 = dfMergeMu2.set_index(f'energy_offset({unit})')
+                dfMergeMu2[c] = dfmergedct[file]['mu2'].loc[minindex:maxindex].values
         if True in transmissionList:
             dfmergeTrans = dfMergeT.mean(axis = 1)
             dfmergeTrans.name = 'mu'
@@ -223,6 +239,10 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             edgeStep = groupFmerge.edge_step
             spectrumHeader = f'edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
             np.savetxt(fileFmerge,np.array([dfmergeFluo.index.values,groupFmerge.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
-            
+        if True in mu2list:
+            dfMergeMu2 = dfMergeMu2.mean(axis=1)
+            dfMergeMu2.name = 'mu2'
+            basefileMu2 = re.sub('[0-9][0-9][0-9][0-9].dat','mu2',file)
+            dfMergeMu2.to_csv(f'merge/{basefileMu2}_merge.dat', sep = ' ')
 if __name__ == '__main__':
     run(direc = direc)
