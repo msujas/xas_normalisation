@@ -16,6 +16,7 @@ speedOfLight = 299792458
 
 digits = 4
 fluoCounter = 'xmap_roi00'
+diodeCounter = 'ion_2_1'
 monPattern = 'mon_'
 ion1Pattern = 'ion_1'
 counterNames = ['ZapEnergy','TwoTheta', 'mon_2','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3',fluoCounter]
@@ -119,10 +120,11 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             if len(usedI1s) > 1:
                 usedI2 = usedI1s[1]
                 dfFiltered[i2name] = df[usedI2].values
-            if fluoCounter in columns:
-                if df[fluoCounter].values.max() > 500*timeStep:
-                    dfFiltered[fluoCounter] = df[fluoCounter].values
-            if (not usedI1s and fluoCounter not in dfFiltered.columns) or np.max(energy) - np.min(energy) < 0.1:
+            if fluoCounter in columns and df[fluoCounter].values.max() > 500*timeStep:
+                dfFiltered[fluoCounter] = df[fluoCounter].values
+            if diodeCounter in columns and df[diodeCounter].values.max() > 1000*timeStep:
+                dfFiltered[diodeCounter] = df[diodeCounter].values
+            if (not usedI1s and fluoCounter not in dfFiltered.columns and not diodeCounter in dfFiltered.columns) or np.max(energy) - np.min(energy) < 0.1:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
@@ -228,6 +230,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
             trans = False
         fluo =  fluoCounter in dfFilteredDct[file].columns
         i2 = i2name in dfFilteredDct[file].columns
+        diode = diodeCounter in dfFilteredDct[file].columns
         fluoAv.append(fluo)
         transAv.append(trans)
         if trans:
@@ -246,6 +249,11 @@ def regrid(coldir, unit = 'keV', averaging = 1):
             gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
             muFregrid = gridfunc(newgrid)
             regridDF['muF'] = muFregrid
+        if diode:
+            mudiode = dfFilteredDct[file][diodeCounter]/dfFilteredDct[file][monCounter]
+            gridfunc = interp1d(dfFilteredDct[file].index.values,mudiode)
+            muDioderegrid = gridfunc(newgrid)
+            regridDF['muDiode'] = muDioderegrid
         for counter in dfFilteredDct[file].columns:
             if monPattern in counter or counter in i1counters or fluoCounter in counter or counter == i2name:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
