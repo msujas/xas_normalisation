@@ -29,7 +29,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     parser.add_argument('-av', '--averaging', default=1, type = int, help='number of spectra to average over, default 1 (no averaging)')
     parser.add_argument('-e', '--elements',default=None, type = str, help = 'comma separated list of elements, e.g. "-e Fe,Cu", if nothing given will search all elements')
-    parser.add_argument('-ee', '--excludeElements',default=None, type = str, help = 'comma separated list of elements to exclude, e.g. "-e Fe,Cu", if nothing given will not exculde any (doesn\'t do anything if used with -e)')
+    parser.add_argument('-ee', '--excludeElements',default=None, type = str, help = 'comma separated list of elements to exclude, e.g. "-ee Fe,Cu", if nothing given will not exculde any (doesn\'t do anything if used with -e)')
     args = parser.parse_args()
     thetaOffset = args.thetaOffset
     elements = args.elements
