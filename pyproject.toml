@@ -18,6 +18,7 @@ classifiers = [
 
 [project.scripts]
 xasCorn = "xasCorn.xasColumnsNormBkg:main"
+h5columns = "xasCorn.h5Processor:runLoop"
 
 [tool.setuptools]
 packages = ["xasCorn"]
