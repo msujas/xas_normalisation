@@ -20,7 +20,6 @@ def h5ToDat(hfile):
     sampleIndex = {}
     for i in range(len(keys)):
         key = keys[i]
-        print(key)
         keyend = key.split('_')[-1]
         sampleName = re.sub('_[0-9][0-9][0-9][0-9]','',basefile).replace('.h5','')
         sampleNamedir = f'{currentdir}/{sampleName}'
@@ -39,7 +38,7 @@ def h5ToDat(hfile):
         sampleMeta = removeByteLabel(str(x['sample']['name'].__array__()))
         columns = list(meas.keys())
         if not 'SUCCESS' in endReason:
-            print(key)
+            print(f'{key}: {endReason}')
 
         df = pd.DataFrame()
         for col in columns:
@@ -58,6 +57,7 @@ def h5ToDat(hfile):
         f.write(header)
         f.close()
         df.to_csv(fname,sep = ' ', index = False,mode='a')
+        print(fname)
         '''
         appendFile = f'{currentdir}/{sampleName}.dat'
         if i == 0 and os.path.exists(appendFile):
