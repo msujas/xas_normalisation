@@ -17,12 +17,18 @@ def h5ToDat(hfile):
     file = h5py.File(hfile,'r')
     keys = list(file.keys())
     print(keys)
+    sampleIndex = {}
     for i in range(len(keys)):
         key = keys[i]
         print(key)
         keyend = key.split('_')[-1]
         sampleName = re.sub('_[0-9][0-9][0-9][0-9]','',basefile).replace('.h5','')
-        sampleName += f'_{i:04d}'
+        sampleNamedir = f'{currentdir}/{sampleName}'
+        if not sampleNamedir in sampleIndex:
+            sampleIndex[sampleNamedir] = 0
+        else:
+            sampleIndex[sampleNamedir] += 1
+        sampleName += f'_{sampleIndex[sampleNamedir]:04d}'
         x = file[key]
         if not 'measurement' in list(x.keys()):
             continue
