@@ -10,24 +10,17 @@ def removeByteLabel(string):
     string = string.replace('\'','')
     return string
 
-def h5ToDat(hfile):
+def h5ToDat(hfile, filingIndex = 0):
     currentdir = os.path.dirname(os.path.realpath(hfile))
     basefile = os.path.basename(hfile)
+    sampleName = re.sub('_[0-9][0-9][0-9][0-9]','',basefile).replace('.h5','')
     os.makedirs(f'{currentdir}/columns',exist_ok=True)
     file = h5py.File(hfile,'r')
     keys = list(file.keys())
     print(keys)
-    sampleIndex = {}
     for i in range(len(keys)):
         key = keys[i]
-        keyend = key.split('_')[-1]
-        sampleName = re.sub('_[0-9][0-9][0-9][0-9]','',basefile).replace('.h5','')
-        sampleNamedir = f'{currentdir}/{sampleName}'
-        if not sampleNamedir in sampleIndex:
-            sampleIndex[sampleNamedir] = 0
-        else:
-            sampleIndex[sampleNamedir] += 1
-        sampleName += f'_{sampleIndex[sampleNamedir]:04d}'
+        newSampleName = f'{sampleName}_{filingIndex+i:04d}'
         x = file[key]
         if not 'measurement' in list(x.keys()):
             continue
@@ -52,7 +45,7 @@ def h5ToDat(hfile):
         header += f'#sample {sampleMeta}\n'
         header += f'#dt {dt}\n'
         header += f'#er {endReason}\n'
-        fname = f'{currentdir}/columns/{sampleName}.dat'
+        fname = f'{currentdir}/columns/{newSampleName}.dat'
         f = open(fname,'w')
         f.write(header)
         f.close()
@@ -70,21 +63,31 @@ def h5ToDat(hfile):
         f.write('\n')
         f.close()
         '''
+    return filingIndex+i
 
 def runLoop():
     mtimedct = {}
     fileSearch = True
     while True:
+        fileIndexDct = {}
         for root, dirs, files in os.walk('.'):
             h5files = glob(f'{root}/*.h5')
             for file in h5files:
+                basefile = os.path.basename(file)
+                sampleName = re.sub('_[0-9][0-9][0-9][0-9]','',basefile).replace('.h5','')
+                sampleNamedir = f'{root}/{sampleName}'
+                if not sampleNamedir in fileIndexDct:
+                    fileIndexDct[sampleNamedir] = 0
+                else:
+                    fileIndexDct[sampleNamedir] += 1
                 mtime = os.path.getmtime(file)
                 if file in mtimedct and mtimedct[file] == mtime:
                     continue
                 fileSearch = True
                 mtimedct[file] = mtime
                 print(file)
-                h5ToDat(file)
+                newi = h5ToDat(file, fileIndexDct[sampleNamedir])
+                fileIndexDct[sampleNamedir] = newi
         if fileSearch:
             print('looking for new files')
             fileSearch = False
