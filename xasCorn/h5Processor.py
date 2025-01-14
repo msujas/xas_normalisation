@@ -98,10 +98,18 @@ def runLoop():
                 mtime = os.path.getmtime(file)
                 if file in mtimedct and mtimedct[file] == mtime:
                     continue
-                fileSearch = True
+                
                 mtimedct[file] = mtime
                 print(file)
-                newi = h5ToDat(file, fileIndexDct[sampleNamedir])
+                if fileSearch:
+                    newi = h5ToDat(file, fileIndexDct[sampleNamedir])
+                else:
+                    newi = 0
+                    subfiles = glob(f'{sampleNamedir}*.h5')
+                    for sfile in subfiles:
+                        newi = h5ToDat(sfile, newi)
+
+                fileSearch = True
                 #regrid(f'{root}/columns/{sampleName}',monCountersRG=['ct01','ct02','ct03','ct04'], i1countersRG=['ct05','ct06','ct07','ct08'])
                 fileIndexDct[sampleNamedir] = newi
         if fileSearch:
