@@ -82,7 +82,7 @@ def h5ToDat(hfile, filingIndex = 0):
 
 def runLoop():
     mtimedct = {}
-    fileSearch = True
+    fileSearch = False
     while True:
         fileIndexDct = {}
         for root, dirs, files in os.walk('.'):
@@ -101,25 +101,21 @@ def runLoop():
                 
                 mtimedct[file] = mtime
                 print(file)
-                if fileSearch:
+                if not fileSearch:
                     newi = h5ToDat(file, fileIndexDct[sampleNamedir])
                 else:
                     newi = 0
-                    subfiles = glob(f'{sampleNamedir}*.h5')
+                    subfiles = glob(f'{sampleNamedir}.h5')
+                    subfiles += glob(f'{sampleNamedir}_*.h5')
+                    subfiles.sort()
                     for sfile in subfiles:
                         newi = h5ToDat(sfile, newi)
+                        newi += 1
 
-                fileSearch = True
+                fileSearch = False
                 #regrid(f'{root}/columns/{sampleName}',monCountersRG=['ct01','ct02','ct03','ct04'], i1countersRG=['ct05','ct06','ct07','ct08'])
                 fileIndexDct[sampleNamedir] = newi
-        if fileSearch:
+        if not fileSearch:
             print('looking for new files')
-            fileSearch = False
+            fileSearch = True
         time.sleep(1)
-
-if __name__ == '__main__':
-    for root,dirs,files in os.walk(r'C:\Users\kenneth1a\Documents\beamlineData\Dec2024_h5'):
-        h5files = glob(f'{root}/*.h5')
-        for file in h5files:
-            print(file)
-            h5ToDat(file)
