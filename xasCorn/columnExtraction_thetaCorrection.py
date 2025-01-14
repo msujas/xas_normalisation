@@ -138,7 +138,11 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
     fileDct[file] = [filemtime,spectrum_count]
     
 
-def regrid(coldir, unit = 'keV', averaging = 1):
+def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCountersRG = None):
+    if i1countersRG == None:
+        i1countersRG = i1counters
+    if monCountersRG == None:
+        monCountersRG = monCounters
     if not os.path.exists(coldir):
         return
     print(f'regridding {coldir}')
@@ -212,7 +216,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
         f.write(headers[c])
         f.close()
         regridDF = pd.DataFrame()
-        if len([col for col in dfFilteredDct[file].columns if monPattern in col]) == 0:
+        if len([col for col in dfFilteredDct[file].columns if col in monCountersRG]) == 0:
             continue
         while Emin < dfFilteredDct[file].index.values[0]:
             ZEmin += 1
@@ -222,8 +226,8 @@ def regrid(coldir, unit = 'keV', averaging = 1):
             Emax = grid[ZEmax]
         newgrid = grid[ZEmin:ZEmax]
         newgrid = newgrid.round(5)
-        monCounter = [c for c in dfFilteredDct[file].columns if monPattern in c][0]
-        usedi1counters = [c for c in dfFilteredDct[file].columns if c in i1counters]
+        monCounter = [c for c in dfFilteredDct[file].columns if c in monCountersRG][0]
+        usedi1counters = [c for c in dfFilteredDct[file].columns if c in i1countersRG]
         if usedi1counters:
             trans = True
         else:
@@ -255,7 +259,7 @@ def regrid(coldir, unit = 'keV', averaging = 1):
             muDioderegrid = gridfunc(newgrid)
             regridDF['muDiode'] = muDioderegrid
         for counter in dfFilteredDct[file].columns:
-            if monPattern in counter or counter in i1counters or fluoCounter in counter or counter == i2name:
+            if counter in monCountersRG or counter in i1countersRG or fluoCounter in counter or counter == i2name:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
                 regridDF[counter] = gridfunc(newgrid).round(1)
         if unit == 'eV':

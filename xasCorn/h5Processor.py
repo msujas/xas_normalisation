@@ -4,6 +4,7 @@ import os, time
 import pandas as pd
 from glob import glob
 import re
+from .columnExtraction_thetaCorrection import regrid
 
 def removeByteLabel(string):
     string = string.replace('b\'','')
@@ -11,16 +12,19 @@ def removeByteLabel(string):
     return string
 
 def h5ToDat(hfile, filingIndex = 0):
+    braggAxis = 'dcmbragg_trig'
+    energyAxis = 'energy_enc'
     currentdir = os.path.dirname(os.path.realpath(hfile))
     basefile = os.path.basename(hfile)
     sampleName = re.sub('_[0-9][0-9][0-9][0-9]','',basefile).replace('.h5','')
-    os.makedirs(f'{currentdir}/columns',exist_ok=True)
+    os.makedirs(f'{currentdir}/columns/{sampleName}',exist_ok=True)
     file = h5py.File(hfile,'r')
     keys = list(file.keys())
     print(keys)
     for i in range(len(keys)):
         key = keys[i]
-        newSampleName = f'{sampleName}_{filingIndex+i:04d}'
+        scanIndex = filingIndex + i
+        newSampleName = f'{sampleName}_{scanIndex:04d}'
         x = file[key]
         if not 'measurement' in list(x.keys()):
             continue
@@ -30,6 +34,7 @@ def h5ToDat(hfile, filingIndex = 0):
         endReason = removeByteLabel(str(x['end_reason'].__array__()))
         sampleMeta = removeByteLabel(str(x['sample']['name'].__array__()))
         columns = list(meas.keys())
+        
         if not 'SUCCESS' in endReason:
             print(f'{key}: {endReason}')
 
@@ -39,26 +44,36 @@ def h5ToDat(hfile, filingIndex = 0):
                 df[col] = meas[col]
             except ValueError:
                 print(f'{col} has wrong data length, skipping')
-
-        header = f'#S {i}\n'
+        if 'trigscan' in title:
+            try:
+                dfEnergy = df.pop(energyAxis)
+                df.insert(0,energyAxis,dfEnergy)
+                
+            except:
+                print(f'no energy axis in {hfile}, {key}')
+        columns = df.columns
+        columnString = '#'+' '.join(columns)
+        header = f'#S {scanIndex}\n'
         header += f'#title {title}\n'
         header += f'#sample {sampleMeta}\n'
         header += f'#dt {dt}\n'
         header += f'#er {endReason}\n'
-        fname = f'{currentdir}/columns/{newSampleName}.dat'
+        header += f'{columnString}\n'
+        fname = f'{currentdir}/columns/{sampleName}/{newSampleName}.dat'
         f = open(fname,'w')
         f.write(header)
         f.close()
-        df.to_csv(fname,sep = ' ', index = False,mode='a')
+        df.to_csv(fname,sep = ' ', index = False,mode='a', header=False)
         print(fname)
+        
         '''
         appendFile = f'{currentdir}/{sampleName}.dat'
-        if i == 0 and os.path.exists(appendFile):
+        if scanIndex == 0 and os.path.exists(appendFile):
             os.remove(appendFile)
         f = open(appendFile,'a')
         f.write(header)
         f.close()
-        df.to_csv(appendFile,sep=' ',index= False,mode = 'a')
+        df.to_csv(appendFile,sep=' ',index= False,mode = 'a', header = False)
         f = open(appendFile,'a')
         f.write('\n')
         f.close()
@@ -87,6 +102,7 @@ def runLoop():
                 mtimedct[file] = mtime
                 print(file)
                 newi = h5ToDat(file, fileIndexDct[sampleNamedir])
+                #regrid(f'{root}/columns/{sampleName}',monCountersRG=['ct01','ct02','ct03','ct04'], i1countersRG=['ct05','ct06','ct07','ct08'])
                 fileIndexDct[sampleNamedir] = newi
         if fileSearch:
             print('looking for new files')
