@@ -53,11 +53,10 @@ def h5ToDat(hfile, filingIndex = 0):
                 print(f'no energy axis in {hfile}, {key}')
         columns = df.columns
         columnString = '#'+' '.join(columns)
-        header = f'#S {scanIndex}\n'
-        header += f'#title {title}\n'
-        header += f'#sample {sampleMeta}\n'
-        header += f'#dt {dt}\n'
-        header += f'#er {endReason}\n'
+        header = f'#S {scanIndex} {title}\n'
+        header += f'#NSAMPLE {sampleMeta}\n'
+        header += f'#DT {dt}\n'
+        header += f'#ER {endReason}\n'
         header += f'{columnString}\n'
         fname = f'{currentdir}/columns/{sampleName}/{newSampleName}.dat'
         f = open(fname,'w')
@@ -66,20 +65,26 @@ def h5ToDat(hfile, filingIndex = 0):
         df.to_csv(fname,sep = ' ', index = False,mode='a', header=False)
         print(fname)
         
-        '''
-        appendFile = f'{currentdir}/{sampleName}.dat'
-        if scanIndex == 0 and os.path.exists(appendFile):
-            os.remove(appendFile)
-        f = open(appendFile,'a')
-        f.write(header)
-        f.close()
-        df.to_csv(appendFile,sep=' ',index= False,mode = 'a', header = False)
-        f = open(appendFile,'a')
-        f.write('\n')
-        f.close()
-        '''
+
     return filingIndex+i
 
+def appendFile(coldir):
+        files = glob(f'{coldir}/*.dat')
+        if not files:
+            return
+        sampleName = re.sub('_[0-9][0-9][0-9][0-9].dat','',files[0])
+        sampleName = os.path.basename(sampleName)
+        string = ''
+        for file in files:
+            f = open(file,'r')
+            string += f.read()
+            string += '\n'
+            f.close()
+        
+        appendFile = f'{coldir}/../../{sampleName}.dat'
+        f = open(appendFile,'w')
+        f.write(string)
+        
 def runLoop():
     mtimedct = {}
     fileSearch = False

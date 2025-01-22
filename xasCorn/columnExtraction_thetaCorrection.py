@@ -16,15 +16,16 @@ speedOfLight = 299792458
 
 digits = 4
 fluoCounter = 'xmap_roi00'
-diodeCounter = 'ion_2_1'
+fluoCounters = ['xmap_roi00', 'Det_5']
 monPattern = 'mon_'
 ion1Pattern = 'ion_1'
-counterNames = ['ZapEnergy','TwoTheta', 'mon_2','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3',fluoCounter]
+counterNames = ['ZapEnergy','TwoTheta', 'mon_2','mon_3','mon_4','mon_1','ion_1_2','ion_1_3','ion_1_1', 'Det_1', 'Det_2', 'Det_3'] + fluoCounters
 counterNames_NF = [c for c in counterNames if c != fluoCounter] #NF - no fluorescence
 xColumns = ['ZapEnergy','TwoTheta']
 monCounters = ['mon_1', 'mon_2', 'mon_3', 'mon_4']
 i1counters = ['ion_1_1', 'ion_1_2', 'ion_1_3', 'Det_1', 'Det_2', 'Det_3']
 i2name = 'I2'
+
 
 def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
@@ -120,11 +121,11 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             if len(usedI1s) > 1:
                 usedI2 = usedI1s[1]
                 dfFiltered[i2name] = df[usedI2].values
-            if fluoCounter in columns and df[fluoCounter].values.max() > 500*timeStep:
+            usedFluos = [col for col in fluoCounters if np.max(df[col].values) > 500]
+            for fluoCounter in usedFluos:
                 dfFiltered[fluoCounter] = df[fluoCounter].values
-            if diodeCounter in columns and df[diodeCounter].values.max() > 1000*timeStep:
-                dfFiltered[diodeCounter] = df[diodeCounter].values
-            if (not usedI1s and fluoCounter not in dfFiltered.columns and not diodeCounter in dfFiltered.columns) or np.max(energy) - np.min(energy) < 0.1:
+
+            if (not usedI1s and not usedFluos) or np.max(energy) - np.min(energy) < 0.1:
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
@@ -232,9 +233,13 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             trans = True
         else:
             trans = False
-        fluo =  fluoCounter in dfFilteredDct[file].columns
+        usedFluos = [col for col in dfFilteredDct[file].columns if col in fluoCounters]
+        if usedFluos:
+            fluo = True
+        else:
+            fluo=False
+
         i2 = i2name in dfFilteredDct[file].columns
-        diode = diodeCounter in dfFilteredDct[file].columns
         fluoAv.append(fluo)
         transAv.append(trans)
         if trans:
@@ -248,18 +253,15 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             gridfunc = interp1d(dfFilteredDct[file].index.values,mu2)
             mu2regrid  = gridfunc(newgrid)
             regridDF['mu2'] = mu2regrid
-        if fluo:
+
+        for c,fluoCounter in enumerate(usedFluos):
             muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
             gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
             muFregrid = gridfunc(newgrid)
-            regridDF['muF'] = muFregrid
-        if diode:
-            mudiode = dfFilteredDct[file][diodeCounter]/dfFilteredDct[file][monCounter]
-            gridfunc = interp1d(dfFilteredDct[file].index.values,mudiode)
-            muDioderegrid = gridfunc(newgrid)
-            regridDF['muDiode'] = muDioderegrid
+            regridDF[f'muF{c+1}'] = muFregrid
+
         for counter in dfFilteredDct[file].columns:
-            if counter in monCountersRG or counter in i1countersRG or fluoCounter in counter or counter == i2name:
+            if counter in monCountersRG or counter in i1countersRG or counter in fluoCounters or counter == i2name:
                 gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
                 regridDF[counter] = gridfunc(newgrid).round(1)
         if unit == 'eV':
@@ -281,8 +283,9 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
         avheader += headers[c]
         if usedi1counters:
             averagingDct[averagingCount]['muT'] = regridDF['muT'].values
-        if fluo:
-            averagingDct[averagingCount]['muF'] = regridDF['muF'].values
+
+        for c,fluoCounter in enumerate(usedFluos):
+            averagingDct[averagingCount][f'muF{c+1}'] = regridDF[f'muF{c+1}'].values
             averagingDct[averagingCount][fluoCounter] = regridDF[fluoCounter].values
         if averagingCount == averaging-1:
             averagingCount = -1
@@ -296,27 +299,31 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             zemaxI = np.min(zemaxIs)
             avGrid = grid[zeminI:zemaxI]
             avMuT = np.empty(shape = (len(avGrid),averaging))
-            avMuF = np.empty(shape = (len(avGrid),averaging))
-            avFluoRaw = np.empty(shape = (len(avGrid),averaging))
+            avMuF = {}
+            avFluoRaw = {}
+            for i in len(usedFluos):
+                avMuF[i] = np.empty(shape = (len(avGrid),averaging))
+                avFluoRaw[i] = np.empty(shape = (len(avGrid),averaging))
             for i in range(averaging):
                 zapenergy = averagingDct[i]['ZapEnergy']
                 minindex = np.argmin(np.abs(zapenergy - zeminmax))
                 maxindex = np.argmin(np.abs(zapenergy - zemaxmin))
                 if transAv[i]:
                     avMuT[:,i] = averagingDct[i]['muT'][minindex:maxindex+1]
-                if fluoAv[i]:
-                    avMuF[:,i] = averagingDct[i]['muF'][minindex:maxindex+1]
-                    avFluoRaw[:,i] = averagingDct[i][fluoCounter][minindex:maxindex+1]
+
+                for c,fluoCounter in enumerate(usedFluos):
+                    avMuF[c][:,i] = averagingDct[i][f'muF{c+1}'][minindex:maxindex+1]
+                    avFluoRaw[c][:,i] = averagingDct[i][fluoCounter][minindex:maxindex+1]
             avDf = pd.DataFrame()
             avDf[f'#ZapEnergy({unit})'] = avGrid
             if transAv[i]:
                 avMuT = np.average(avMuT,axis = 1)
                 avDf['muT'] = avMuT
-            if fluoAv[i]:
-                avMuF = np.average(avMuF, axis = 1)
-                avFluoRaw = np.average(avFluoRaw,axis = 1)
-                avDf['muF'] = avMuF
-                avDf[fluoCounter] = avFluoRaw
+            for c,fluoCounter in usedFluos:
+                avMuF[c] = np.average(avMuF, axis = 1)
+                avFluoRaw[c] = np.average(avFluoRaw,axis = 1)
+                avDf[f'muF{c+1}'] = avMuF[c]
+                avDf[fluoCounter] = avFluoRaw[c]
             
             fname = f'{avdir}/{file}'
             f = open(fname,'w')
