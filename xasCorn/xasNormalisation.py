@@ -116,17 +116,20 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             header = ''.join(header).replace('#','')
             f.close()
             headers.append(header)
-            fluorescence = [False,False]
+            fluorescence = False
             transmission = False
             i2 = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, names = colnames)
-            
-            for c,muFheader in enumerate(muFheaders):
+            usedMuF = [col for col in df.columns if col in muFheaders]
+            if usedMuF:
+                fluorescence = True
+            '''
+            for c,muFheader in enumerate(usedMuF):
                 if muFheader in df.columns:
                     #values = df[fluorescenceCounter].values
                     #fluorescence[c] = not(np.inf in values or np.max(values) < 100)
                     fluorescence[c] = True
-             
+             '''
             if muTheader in df.columns:
                 values = df[muTheader].values
                 if not np.inf in values:
@@ -147,12 +150,11 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             if transmission:
                 muT = df[muTheader].values
                 dfmergedct[file]['muT'] = muT
-            if True in fluorescence:
+            if fluorescence:
                 muFluo = {}
-                for c,muFheader in enumerate(muFheaders):
-                    if fluorescence[c]:
-                        muFluo[c] = df[muFheader].values
-                        dfmergedct[file][muFheader] = muFluo[c]
+                for c,muFheader in enumerate(usedMuF):
+                    muFluo[c] = df[muFheader].values
+                    dfmergedct[file][muFheader] = muFluo[c]
             if i2:
                 mu2 =  df[mu2header].values
                 dfmergedct[file]['mu2'] = mu2
@@ -162,7 +164,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
         dfMergeT = pd.DataFrame()
         dfMergeF = pd.DataFrame()
         dfMergeMu2 = pd.DataFrame()
-        doFluo = True in [True in f for f in fluoList]
+        doFluo = True in fluoList
         if True in transmissionList:
             if not os.path.exists('norm/trans'):
                 os.makedirs('norm/trans')
@@ -177,7 +179,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             minindex = np.abs(E - E0merge).argmin()
             maxindex = np.abs(E - EendMerge).argmin()
 
-            if True in fluoList[c]:
+            if fluoList[c] == True:
                 muFluo = dfmergedct[file]['muF1'].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
                 try:
@@ -234,7 +236,6 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             spectrumHeader = f'edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
             np.savetxt(fileTmerge,np.array([dfmergeTrans.index.values,groupTmerge.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
         
-        
         if doFluo:
             dfmergeFluo = dfMergeF.mean(axis = 1)
             dfmergeFluo.name = 'mu'
@@ -251,5 +252,6 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             dfMergeMu2.name = 'mu2'
             basefileMu2 = re.sub('[0-9][0-9][0-9][0-9].dat','mu2',file)
             dfMergeMu2.to_csv(f'merge/{basefileMu2}_merge.dat', sep = ' ')
+            
 if __name__ == '__main__':
     run(direc = direc)

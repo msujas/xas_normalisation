@@ -121,7 +121,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             if len(usedI1s) > 1:
                 usedI2 = usedI1s[1]
                 dfFiltered[i2name] = df[usedI2].values
-            usedFluos = [col for col in fluoCounters if np.max(df[col].values) > 500]
+            usedFluos = [col for col in fluoCounters if np.max(df[col].values) > 100]
             for fluoCounter in usedFluos:
                 dfFiltered[fluoCounter] = df[fluoCounter].values
 
