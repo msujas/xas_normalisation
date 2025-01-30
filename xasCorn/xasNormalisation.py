@@ -107,6 +107,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
         transmissionList = []
         mu2list = []
         headers = []
+        usedMuFList = []
         for c,file in enumerate(datfiles):
             
             f = open(file,'r')
@@ -121,6 +122,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             i2 = False
             df = pd.read_csv(file,sep = ' ',comment = '#',index_col = 0, names = colnames)
             usedMuF = [col for col in df.columns if col in muFheaders]
+            usedMuFList.append(usedMuF)
             if usedMuF:
                 fluorescence = True
             '''
@@ -179,8 +181,8 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             minindex = np.abs(E - E0merge).argmin()
             maxindex = np.abs(E - EendMerge).argmin()
 
-            if fluoList[c] == True:
-                muFluo = dfmergedct[file]['muF1'].loc[minindex:].values #making individual files start with same E value to make plotting easier
+            for n,fluoName in enumerate(usedMuFList[c]):
+                muFluo = dfmergedct[file][fluoName].loc[minindex:].values #making individual files start with same E value to make plotting easier
                 ds = pd.Series(index = E[minindex:],data = muFluo)
                 try:
                     groupF = normalise(ds)
@@ -191,12 +193,17 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
                 edgeStep = groupF.edge_step
                 fileF = f'norm/fluo/{basefileF}.nor'
                 print(fileF)
-                spectrumHeader = f'{headers[c]}edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit}) mu_norm'
-                np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
+                if n == 0:
+                    spectrumHeader = f'{headers[c]}edge: {e0} eV\nedge step: {edgeStep}\nEnergy({unit})'
+                    array = np.array([E[minindex:]])
+                array = np.append(array,[groupF.flat], axis = 0)
+                spectrumHeader += f' {fluoName}_norm'
+                if n == len(usedMuFList[c]) -1:
+                    np.savetxt(fileF,np.array([E[minindex:],groupF.flat]).transpose(),header = spectrumHeader,fmt = '%.5f')
                 if c == 0:
                     dfMergeF[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values
                     dfMergeF = dfMergeF.set_index(f'energy_offset({unit})')
-                dfMergeF[c] = dfmergedct[file]['muF1'].loc[minindex:maxindex].values
+                dfMergeF[c] = dfmergedct[file][fluoName].loc[minindex:maxindex].values
             if transmissionList[c]:
                 muT =  dfmergedct[file]['muT'].loc[minindex:].values
                 ds = pd.Series(index = E[minindex:],data = muT)
@@ -252,6 +259,6 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             dfMergeMu2.name = 'mu2'
             basefileMu2 = re.sub('[0-9][0-9][0-9][0-9].dat','mu2',file)
             dfMergeMu2.to_csv(f'merge/{basefileMu2}_merge.dat', sep = ' ')
-            
+
 if __name__ == '__main__':
     run(direc = direc)
