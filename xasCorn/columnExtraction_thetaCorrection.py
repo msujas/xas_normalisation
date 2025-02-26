@@ -301,7 +301,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             avMuT = np.empty(shape = (len(avGrid),averaging))
             avMuF = {}
             avFluoRaw = {}
-            for i in len(usedFluos):
+            for i in range(len(usedFluos)):
                 avMuF[i] = np.empty(shape = (len(avGrid),averaging))
                 avFluoRaw[i] = np.empty(shape = (len(avGrid),averaging))
             for i in range(averaging):
@@ -319,9 +319,9 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             if transAv[i]:
                 avMuT = np.average(avMuT,axis = 1)
                 avDf['muT'] = avMuT
-            for c,fluoCounter in usedFluos:
-                avMuF[c] = np.average(avMuF, axis = 1)
-                avFluoRaw[c] = np.average(avFluoRaw,axis = 1)
+            for c,fluoCounter in enumerate(usedFluos):
+                avMuF[c] = np.average(avMuF[c], axis = 1)
+                avFluoRaw[c] = np.average(avFluoRaw[c],axis = 1)
                 avDf[f'muF{c+1}'] = avMuF[c]
                 avDf[fluoCounter] = avFluoRaw[c]
             
