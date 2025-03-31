@@ -85,9 +85,9 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0):
             lineSplit = np.array([np.fromstring(line,sep = ' ')])
             if lineno == 0:
                 array = lineSplit
-
+                lineShape = lineSplit.shape
                 lineno += 1
-            else:
+            elif lineSplit.shape == lineShape:
                 array = np.append(array,lineSplit,axis = 0)
             
         elif ('#C' in line or not line) and onscan:
