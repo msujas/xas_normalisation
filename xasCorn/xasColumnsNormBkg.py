@@ -100,13 +100,14 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     print(f'running column extraction on {file}')
                     columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum, 
                                                                  subdir=subdir)
-                    basename = os.path.splitext(os.path.basename(file))[0]
-                    columnExtraction_thetaCorrection.regrid(f'{currentdir}{columndirname}/{basename}', unit = unit, averaging=averaging)
-                    columnDir = os.path.basename(file).replace('.dat','')
-                    normdir = f'{root}/{columndirname}/{columnDir}'
-                    if os.path.exists(normdir):
-                        print(f'running normalisation in {normdir}')
-                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname, elements=elements, 
+                    #basename = os.path.splitext(os.path.basename(file))[0]
+                    outdir = columnExtraction_thetaCorrection.getoutdir(file,f'{currentdir}{columndirname}', subdir)
+                    columnExtraction_thetaCorrection.regrid(outdir, unit = unit, averaging=averaging)
+                    #columnDir = os.path.basename(file).replace('.dat','')
+
+                    if os.path.exists(outdir):
+                        print(f'running normalisation in {outdir}')
+                        xasNormalisation.run(outdir, unit = unit, coldirname=columndirname, elements=elements, 
                                              excludeElements=excludeElements, averaging=averaging)
 
         time.sleep(waitTime)

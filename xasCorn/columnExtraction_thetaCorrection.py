@@ -33,6 +33,16 @@ def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
     return np.round(energy_kev,6)
 
+
+def getoutdir(file, coldir, subdir):
+    basename = os.path.splitext(os.path.basename(file))[0]
+    edge = '_'.join(basename.split('_')[-2:])
+    match subdir:
+        case 'edge': newdir = f'{coldir}/{edge}/'
+        case 'file': newdir = f'{coldir}/{basename}/'
+        case _: raise ValueError('subdir must be "edge" or "file"')
+    return newdir
+
 def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdir = 'edge'):
     f = open(file,'r')
     data = f.read()
@@ -48,14 +58,15 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
         coldir = currentdir+f'columns{thetaOffset:.3f}/'
     if not os.path.exists(coldir):
         os.makedirs(coldir)
+    '''
     edge = '_'.join(basename.split('_')[-2:])
     match subdir:
         case 'edge':
             newdir = f'{coldir}/{edge}/'
         case 'file':
             newdir = f'{coldir}/{basename}/'
-        case _:
-            raise ValueError('subdir must be "edge" or "file"')
+    '''
+    newdir = getoutdir(file, coldir, subdir)
     if not os.path.exists(newdir):
         os.makedirs(newdir)
     if not os.path.exists(f'{newdir}/regrid/'):
@@ -380,9 +391,9 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, exclu
         print(os.getcwd())
         for file in datfiles:
             processFile(file, fileDct, currentdir,  thetaOffset, subdir = subdir)
-            basename = os.path.splitext(os.path.basename(file))[0]
+            outdir = getoutdir(file, coldir, subdir)           
 
-            regrid(f'{coldir}/{basename}', unit = unit, averaging=averaging)
+            regrid(f'{outdir}', unit = unit, averaging=averaging)
             
     return fileDct
 
