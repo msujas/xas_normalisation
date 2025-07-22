@@ -28,12 +28,18 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                         help = 'theta offset to apply to monochromator for energy correction')
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     parser.add_argument('-av', '--averaging', default=1, type = int, help='number of spectra to average over, default 1 (no averaging)')
-    parser.add_argument('-e', '--elements',default=None, type = str, help = 'comma separated list of elements, e.g. "-e Fe,Cu", if nothing given will search all elements')
-    parser.add_argument('-ee', '--excludeElements',default=None, type = str, help = 'comma separated list of elements to exclude, e.g. "-ee Fe,Cu", if nothing given will not exculde any (doesn\'t do anything if used with -e)')
+    parser.add_argument('-e', '--elements',default=None, type = str, help = 'comma separated list of elements, e.g. "-e Fe,Cu", '
+    'if nothing given will search all elements')
+    parser.add_argument('-ee', '--excludeElements',default=None, type = str, help = 'comma separated list of elements to exclude, e.g. ' \
+    '"-ee Fe,Cu", if nothing given will not exculde any (doesn\'t do anything if used with -e)')
+    parser.add_argument('-s','--subdir',type = str, default = 'edge', help= 'how to arrange output folders. "edge" - everything with ' \
+    'the same element and type (EXAFS or XANES) will go in the same folder, or "file" - every file gets its own folder')
+
     args = parser.parse_args()
     thetaOffset = args.thetaOffset
     elements = args.elements
     excludeElements = args.excludeElements
+    subdir = args.subdir
     if elements:
         elements = elements.split(',')
     if excludeElements:
@@ -53,7 +59,8 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
         columndirname = f'columns{thetaOffset:.3f}'
 
     print('running column extraction')
-    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements, excludeElements=excludeElements)
+    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements, 
+                                                   excludeElements=excludeElements, subdir=subdir)
     print('running normalisation')
     xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
     repeat = True
@@ -91,14 +98,16 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                         startSpectrum = fileDct[file][1]-1
                     repeat = True
                     print(f'running column extraction on {file}')
-                    columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum)
+                    columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum, 
+                                                                 subdir=subdir)
                     basename = os.path.splitext(os.path.basename(file))[0]
                     columnExtraction_thetaCorrection.regrid(f'{currentdir}{columndirname}/{basename}', unit = unit, averaging=averaging)
                     columnDir = os.path.basename(file).replace('.dat','')
                     normdir = f'{root}/{columndirname}/{columnDir}'
                     if os.path.exists(normdir):
                         print(f'running normalisation in {normdir}')
-                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
+                        xasNormalisation.run(normdir, unit = unit, coldirname=columndirname, elements=elements, 
+                                             excludeElements=excludeElements, averaging=averaging)
 
         time.sleep(waitTime)
 
