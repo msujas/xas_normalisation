@@ -23,5 +23,7 @@ options:
   -ee EXCLUDEELEMENTS, --excludeElements EXCLUDEELEMENTS<br>
                         comma separated list of elements to exclude, e.g. "-ee Fe,Cu", if nothing given will not
                         exculde any (doesn't do anything if used with -e)<br>
+  -s, --subdir SUBDIR   how to arrange output folders. "edge" - everything with the same element and type (EXAFS or XANES) will go in
+                        the same folder, or "file" - every file gets its own folder<br>
 
 It uses Larch (https://xraypy.github.io/xraylarch/index.html, https://iopscience.iop.org/article/10.1088/1742-6596/430/1/012007) to normalise the data.
