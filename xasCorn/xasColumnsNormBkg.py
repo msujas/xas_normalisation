@@ -34,12 +34,16 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     '"-ee Fe,Cu", if nothing given will not exculde any (doesn\'t do anything if used with -e)')
     parser.add_argument('-s','--subdir',type = str, default = 'edge', help= 'how to arrange output folders. "edge" - everything with ' \
     'the same element and type (EXAFS or XANES) will go in the same folder, or "file" - every file gets its own folder')
+    parser.add_argument('-d','--dspacing',type=float, default=3.13429, help='monochromator d-spacing (default 3.13429). If data from '\
+                        'before 8/2025, should be 3.13379 (or use the new value and apply a theta offset, try -0.005198). ' \
+                        'Recalibrated to 3.13429 8/2025, so use this after 8/2025')
 
     args = parser.parse_args()
     thetaOffset = args.thetaOffset
     elements = args.elements
     excludeElements = args.excludeElements
     subdir = args.subdir
+    dspacing = args.dspacing
     if elements:
         elements = elements.split(',')
     if excludeElements:
@@ -60,7 +64,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
 
     print('running column extraction')
     fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements, 
-                                                   excludeElements=excludeElements, subdir=subdir)
+                                                   excludeElements=excludeElements, subdir=subdir, dspacing=dspacing)
     print('running normalisation')
     xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
     repeat = True
@@ -99,7 +103,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     repeat = True
                     print(f'running column extraction on {file}')
                     columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum, 
-                                                                 subdir=subdir)
+                                                                 subdir=subdir, dspacing=dspacing)
                     #basename = os.path.splitext(os.path.basename(file))[0]
                     outdir = columnExtraction_thetaCorrection.getoutdir(file,f'{currentdir}{columndirname}', subdir)
                     columnExtraction_thetaCorrection.regrid(outdir, unit = unit, averaging=averaging)

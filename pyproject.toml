@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "xasNormalisation"
 version = "1.0.0"
-requires-python = ">= 3.9"
+requires-python = ">= 3.10"
 dependencies = ["pandas", "matplotlib", "scipy","xraylarch"]
 authors = [{name = "Kenneth P. Marshall", email = "kenneth.marshall@esrf.fr"}]
 maintainers = [{name = "Kenneth P. Marshall", email = "kenneth.marshall@esrf.fr"}]

@@ -3,13 +3,13 @@ from glob import glob
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
-
+from functools import partial
 
 direc = r'C:\Users\kenneth1a\Documents\beamlineData\xasTest'
 thetaOffset = 0
 
 
-dspacing = 3.13379
+dspacing = 3.13429 #3.13379 old value, before 8/2025
 planck = 6.62607015e-34
 charge = 1.60217663e-19
 speedOfLight = 299792458
@@ -27,7 +27,7 @@ i1counters = ['ion_1_1', 'ion_1_2', 'ion_1_3', 'Det_1', 'Det_2', 'Det_3']
 i2name = 'I2'
 
 
-def angle_to_kev(angle): #NB the TwoTheta data in the .dat files is really theta
+def angle_to_kev(angle, dspacing = dspacing): #NB the TwoTheta data in the .dat files is really theta
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
     wavelength_m = wavelength*10**(-10)
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
@@ -43,7 +43,7 @@ def getoutdir(file, coldir, subdir):
         case _: raise ValueError('subdir must be "edge" or "file"')
     return newdir
 
-def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdir = 'edge'):
+def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdir = 'edge', dspacing = dspacing):
     f = open(file,'r')
     data = f.read()
     f.close()
@@ -51,7 +51,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
     if not 'zapline' in data:
         fileDct[file] = [filemtime,-1]
         return
-    
+    angle_to_kev_func = partial(angle_to_kev, dspacing=dspacing)
     basename = os.path.splitext(os.path.basename(file))[0]
     coldir = currentdir+'columns/'
     if thetaOffset != 0:
@@ -118,7 +118,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
 
             dfFiltered = df[xColumns].copy(deep=True)
             dfFiltered['Theta_offset'] =  dfFiltered['TwoTheta'].apply(lambda x: np.round(x + thetaOffset,7))
-            dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev)
+            dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev_func)
             dfFiltered.set_index('ZapEnergy_offset',inplace = True)
             dfFiltered.index.name = '#ZapEnergy_offset'
             energy = dfFiltered.index.values
@@ -354,7 +354,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
         averagingCount += 1
 
 
-def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, excludeElements = None, subdir = 'edge'):
+def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, excludeElements = None, subdir = 'edge', dspacing=dspacing):
 
     os.chdir(direc)
     fileDct = {} #dictionary with files as keys, values: [modified time, last spectrum]
@@ -390,7 +390,7 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, exclu
             continue
         print(os.getcwd())
         for file in datfiles:
-            processFile(file, fileDct, currentdir,  thetaOffset, subdir = subdir)
+            processFile(file, fileDct, currentdir,  thetaOffset, subdir = subdir, dspacing=dspacing)
             outdir = getoutdir(file, coldir, subdir)           
 
             regrid(f'{outdir}', unit = unit, averaging=averaging)
