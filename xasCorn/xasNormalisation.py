@@ -3,6 +3,7 @@ from larch import Group
 import numpy as np
 import os, re
 import pandas as pd
+from glob import glob
 
 direc = r''
 
@@ -53,7 +54,90 @@ def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     return group
 
 
+def normaliseRG(regriddir, unit = 'keV'):
+    if not 'regrid' in regriddir or 'norm' in regriddir:
+        return
+    os.makedirs(f'{regriddir}/norm',exist_ok=True)
+    transdir = f'{regriddir}/norm/trans/'
+    fluodir = f'{regriddir}/norm/fluo'
+    files = glob(f'{regriddir}/*.dat')
+    energycol = f'#energy_offset({unit})'
+    for file in files:
+        print(file)
+        f = open(file,'r')
+        header = [line for line in f.readlines() if line.startswith('#')]
+        f.close()
+        columns = header[-1].replace('\n','').split()
+        header = ''.join(header[:-1])
+        df = pd.read_csv(file,sep = ' ', header= None, comment='#')
+        df.columns = columns
+        energy = df[energycol].values
+        filen = os.path.basename(file.replace('.dat','.nor'))
+        if 'muT' in columns:
+            if not os.path.exists(transdir):
+                os.makedirs(transdir)
+            muT = df['muT']
+            muT.index = energy
+            groupT = normalise(muT)
+            headerT = header + f'\n#edge: {groupT.e0}\n'
+            headerT += f'#edge step: {groupT.edge_step}\n'
+            headerT += ' '.join(columns)     
+            np.savetxt(f'{regriddir}/norm/trans/{filen}', np.array([energy,groupT.flat]).transpose(),header=headerT, fmt = '%.5f')
+        if 'muF1' in columns:
+            if not os.path.exists(fluodir):
+                os.makedirs(fluodir)
+            muF = df['muF1']
+            muF.index = energy
+            groupF = normalise(muF)
+            headerF = f'{header}\n#edge: {groupF.e0}\n'
+            headerF += f'#edge step: {groupF.edge_step}\n'
+            headerF += ' '.join(columns)
+            np.savetxt(f'{regriddir}/norm/fluo/{filen}',np.array([energy,groupF.flat]).transpose(),header=headerF, fmt = '%.5f')
+    mergeFiles = glob(f'{regriddir}/merge/*.dat')
+    for file in mergeFiles:
+        data = np.loadtxt(file,unpack=True,comments='#')
+        energy = data[0]
+        mu = data[1]
+        ds = pd.Series(data = mu, index = energy)
+        groupMerge = normalise(ds)
+        header = f'edge: {groupMerge.e0}\n'
+        header += f'edge step: {groupMerge.edge_step}\n'
+        header += f'energy({unit}) mu_norm'
+        np.savetxt(file.replace('.dat','.nor'), np.array([energy,groupMerge.flat]).transpose(), header=header, fmt = '%.5f')
+
 def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeElements = None, averaging = 1):
+    if not os.path.exists(direc):
+        return
+    os.chdir(direc)
+    for root,dirs,files in os.walk(os.getcwd()):
+        if not 'regrid' in root or coldirname not in root or 'merge' in root or 'norm' in root:
+            continue
+        if averaging < 2 and 'regridAv' in root:
+            continue
+        elif averaging > 1 and 'regridAv' in root and f'regridAv{averaging}' not in root:
+            continue 
+        if coldirname == 'columns' and ('columns-' in root or re.search('colummns[0-9]',root)):
+            continue
+        if elements:
+            skip = True
+            for e in elements:
+                if f'_{e}_' in root:
+                    skip = False
+                    break 
+            if skip:
+                continue
+        elif excludeElements:
+            skip = False
+            for e in excludeElements:
+                if f'_{e}_' in root:
+                    skip = True
+                    break
+            if skip:
+                continue
+        print(root)
+        normaliseRG(root, unit)
+
+def run2(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeElements = None, averaging = 1):
     if not os.path.exists(direc):
         return
     os.chdir(direc)
@@ -91,6 +175,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
                     break
             if skip:
                 continue
+        
         os.chdir(root)
         if not os.path.exists('merge/'):
             os.makedirs('merge/')
@@ -125,13 +210,15 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             usedMuFList.append(usedMuF)
             if usedMuF:
                 fluorescence = True
+        
             '''
             for c,muFheader in enumerate(usedMuF):
                 if muFheader in df.columns:
                     #values = df[fluorescenceCounter].values
                     #fluorescence[c] = not(np.inf in values or np.max(values) < 100)
                     fluorescence[c] = True
-             '''
+            '''
+        
             if muTheader in df.columns:
                 values = df[muTheader].values
                 if not np.inf in values:
@@ -173,7 +260,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
         if doFluo:
             if not os.path.exists('norm/fluo'):
                 os.makedirs('norm/fluo')
-
+        
         for c,file in enumerate(dfmergedct):
             basefileT = file.replace('.dat','T')
             basefileF = file.replace('.dat','F')
@@ -231,11 +318,12 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
                     dfMergeMu2[f'energy_offset({unit})'] = dfmergedct[file][f'energy_offset({unit})'].loc[minindex:maxindex].values 
                     dfMergeMu2 = dfMergeMu2.set_index(f'energy_offset({unit})')
                 dfMergeMu2[c] = dfmergedct[file]['mu2'].loc[minindex:maxindex].values
+        
         if True in transmissionList:
             dfmergeTrans = dfMergeT.mean(axis = 1)
             dfmergeTrans.name = 'mu'
             basefileTmerge = re.sub('[0-9][0-9][0-9][0-9].dat','T',file)
-            dfmergeTrans.to_csv(f'merge/{basefileTmerge}_merge.dat',sep = ' ')
+            #dfmergeTrans.to_csv(f'merge/{basefileTmerge}_merge.dat',sep = ' ')
             groupTmerge = normalise(dfmergeTrans)
             e0 = groupTmerge.e0
             edgeStep = groupTmerge.edge_step
@@ -247,7 +335,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             dfmergeFluo = dfMergeF.mean(axis = 1)
             dfmergeFluo.name = 'mu'
             basefileFmerge = re.sub('[0-9][0-9][0-9][0-9].dat','F',file)
-            dfmergeFluo.to_csv(f'merge/{basefileFmerge}_merge.dat', sep = ' ')
+            #dfmergeFluo.to_csv(f'merge/{basefileFmerge}_merge.dat', sep = ' ')
             groupFmerge = normalise(dfmergeFluo)
             fileFmerge = f'merge/{basefileFmerge}.nor'
             e0 = groupFmerge.e0
@@ -259,6 +347,6 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
             dfMergeMu2.name = 'mu2'
             basefileMu2 = re.sub('[0-9][0-9][0-9][0-9].dat','mu2',file)
             dfMergeMu2.to_csv(f'merge/{basefileMu2}_merge.dat', sep = ' ')
-
+        
 if __name__ == '__main__':
     run(direc = direc)

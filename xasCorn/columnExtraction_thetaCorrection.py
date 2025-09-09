@@ -157,6 +157,64 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
     fileDct[file] = [filemtime,spectrum_count]
     
 
+def merge(regriddir, unit = 'keV'):
+    os.makedirs(f'{regriddir}/merge/',exist_ok=True)
+    mergedct = {}
+    files = set(['_'.join(file.split('_')[:-1]) for file in glob(f'{regriddir}/*.dat')])
+    print(files)
+    energycol = f'energy_offset({unit})'
+    for file in files:
+        basefile = os.path.basename(file)
+        files2 = glob(f'{file}*.dat')
+        print(files2)
+        mergedct[file] = {}
+        e0 = 0
+        eend = 100000
+        for f in files2:
+            print(f)
+            fr = open(f,'r')
+            headcol = [line for line in fr.readlines() if line.startswith('#')][-1].replace('\n','').replace('#','')
+            fr.close()
+            cols = headcol.split()
+            df = pd.read_csv(f, comment='#', sep = ' ', header=None)
+            df.columns = cols
+            mergedct[file][f] = df
+            energy = df[energycol].values
+
+            e0t = round(energy[0],5)
+            eendt = round(energy[-1],5)
+            if e0t > e0:
+                e0 = e0t
+            if eendt < eend:
+                eend = eendt
+        muFsum = 0
+        muTsum = 0
+        muTcount = 0
+        muFcount = 0
+        minindex = np.abs(energy-e0).argmin()
+        maxindex = np.abs(energy-eend).argmin()
+        energyAxis = energy[minindex:maxindex+1]
+        for f in mergedct[file]:
+            energy = mergedct[file][f][energycol].values
+            minindex = np.abs(energy-e0).argmin()
+            maxindex = np.abs(energy-eend).argmin()
+            df = mergedct[file][f].iloc[minindex:maxindex+1]
+            if 'muT' in df.columns:
+                muTsum += df['muT'].values[minindex:maxindex+1]
+                muTcount += 1
+            if 'muF1' in df.columns:
+                muFsum += df['muF1'].values[minindex:maxindex+1]
+                muFcount += 1
+        if muTcount:
+            muTsum = muTsum/muTcount
+            np.savetxt(f'{regriddir}/merge/{basefile}_T_merge.dat',np.array([energyAxis,muTsum]).transpose(),fmt = '%.5f', 
+                       header=f'{energycol} muT')
+        if muFcount:
+            muFsum = muFsum/muFcount
+            np.savetxt(f'{regriddir}/merge/{basefile}_F_merge.dat',np.array([energyAxis,muFsum]).transpose(),fmt = '%.5f',
+                       header=f'{energycol} muF')
+        
+
 def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCountersRG = None):
     if i1countersRG == None:
         i1countersRG = i1counters
@@ -290,7 +348,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
         if len(regridDF.columns) == 0:
             continue
         regridDF.to_csv(newfilerg,sep = ' ',mode = 'a')
-
+        
         if averaging <= 1:
             continue
 
@@ -352,7 +410,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             fluoAv = []
             transAv = []
         averagingCount += 1
-
+    merge(f'{coldir}/regrid',unit=unit)
 
 def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, excludeElements = None, subdir = 'edge', dspacing=dspacing):
 
