@@ -245,7 +245,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
     else:
         escale = 1
         unit = 'keV'
-    for c,file in enumerate(files):
+    for i,file in enumerate(files):
         f = open(file,'r')
         lines = f.readlines()
         f.close()
@@ -277,7 +277,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
     avheader = ''
     fluoAv = []
     transAv = []
-    for c, file in enumerate(dfFilteredDct):
+    for n, file in enumerate(dfFilteredDct):
         ZEmin = 0
         ZEmax = -1
         Emin = grid[0]
@@ -290,7 +290,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
                 os.remove(newfilerg)
             continue
         f = open(newfilerg,'w')
-        f.write(headers[c])
+        f.write(headers[n])
         f.close()
         regridDF = pd.DataFrame()
         if len([col for col in dfFilteredDct[file].columns if col in monCountersRG]) == 0:
@@ -330,11 +330,11 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             mu2regrid  = gridfunc(newgrid)
             regridDF['mu2'] = mu2regrid
 
-        for c,fluoCounter in enumerate(usedFluos):
+        for c2,fluoCounter in enumerate(usedFluos):
             muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
             gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
             muFregrid = gridfunc(newgrid)
-            regridDF[f'muF{c+1}'] = muFregrid
+            regridDF[f'muF{c2+1}'] = muFregrid
 
         for counter in dfFilteredDct[file].columns:
             if counter in monCountersRG or counter in i1countersRG or counter in fluoCounters or counter == i2name:
@@ -356,7 +356,7 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
         averagingDct[averagingCount]['ZEmin'] = ZEmin
         averagingDct[averagingCount]['ZEmax'] = ZEmax
         averagingDct[averagingCount]['ZapEnergy'] = newgrid
-        avheader += headers[c]
+        avheader += headers[n]
         if usedi1counters:
             averagingDct[averagingCount]['muT'] = regridDF['muT'].values
 
@@ -378,26 +378,27 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
             avMuF = {}
             avFluoRaw = {}
             for i in range(len(usedFluos)):
-                avMuF[i] = np.empty(shape = (len(avGrid),averaging))
-                avFluoRaw[i] = np.empty(shape = (len(avGrid),averaging))
+                avMuF[i] =  np.empty(shape = (0,len(avGrid)))
+                avFluoRaw[i] = np.empty(shape = (0,len(avGrid)))
             for i in range(averaging):
                 zapenergy = averagingDct[i]['ZapEnergy']
                 minindex = np.argmin(np.abs(zapenergy - zeminmax))
                 maxindex = np.argmin(np.abs(zapenergy - zemaxmin))
                 if transAv[i]:
                     avMuT[:,i] = averagingDct[i]['muT'][minindex:maxindex+1]
-
                 for c,fluoCounter in enumerate(usedFluos):
-                    avMuF[c][:,i] = averagingDct[i][f'muF{c+1}'][minindex:maxindex+1]
-                    avFluoRaw[c][:,i] = averagingDct[i][fluoCounter][minindex:maxindex+1]
+                    if not f'muF{c+1}':
+                        continue
+                    avMuF[c] = np.append(avMuF[c] ,[averagingDct[i][f'muF{c+1}'][minindex:maxindex+1]], axis = 0)
+                    avFluoRaw[c] = np.append(avFluoRaw[c],[averagingDct[i][fluoCounter][minindex:maxindex+1]], axis = 0)
             avDf = pd.DataFrame()
             avDf[f'#ZapEnergy({unit})'] = avGrid
             if transAv[i]:
                 avMuT = np.average(avMuT,axis = 1)
                 avDf['muT'] = avMuT
             for c,fluoCounter in enumerate(usedFluos):
-                avMuF[c] = np.average(avMuF[c], axis = 1)
-                avFluoRaw[c] = np.average(avFluoRaw[c],axis = 1)
+                avMuF[c] = np.average(avMuF[c], axis = 0)
+                avFluoRaw[c] = np.average(avFluoRaw[c],axis = 0)
                 avDf[f'muF{c+1}'] = avMuF[c]
                 avDf[fluoCounter] = avFluoRaw[c]
             

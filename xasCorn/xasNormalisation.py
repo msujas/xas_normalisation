@@ -61,13 +61,14 @@ def normaliseRG(regriddir, unit = 'keV'):
     transdir = f'{regriddir}/norm/trans/'
     fluodir = f'{regriddir}/norm/fluo'
     files = glob(f'{regriddir}/*.dat')
-    energycol = f'#energy_offset({unit})'
+    #energycol = f'#energy_offset({unit})'
     for file in files:
         print(file)
         f = open(file,'r')
         header = [line for line in f.readlines() if line.startswith('#')]
         f.close()
         columns = header[-1].replace('\n','').split()
+        energycol = columns[0]
         header = ''.join(header[:-1])
         df = pd.read_csv(file,sep = ' ', header= None, comment='#')
         df.columns = columns
