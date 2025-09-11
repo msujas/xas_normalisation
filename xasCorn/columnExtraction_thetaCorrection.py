@@ -277,7 +277,15 @@ def regrid(coldir, unit = 'keV', averaging = 1, i1countersRG = None, monCounters
     avheader = ''
     fluoAv = []
     transAv = []
+    oldbasefile = ''
     for n, file in enumerate(dfFilteredDct):
+        basefile = '_'.join(file.split('_')[:-1])
+        if basefile != oldbasefile:
+            averagingCount = 0
+            avheader = ''
+            fluoAv = []
+            transAv = []
+        oldbasefile = basefile
         ZEmin = 0
         ZEmax = -1
         Emin = grid[0]
