@@ -127,7 +127,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
             
             dfFiltered[usedMon] = df[usedMon].values
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
-            if np.max(dfFiltered[usedMon].values) < timeStep*10000 or np.min(dfFiltered[usedMon].values) < 10*timeStep:
+            if np.min(dfFiltered[usedMon].values) < 1000*timeStep: #check if beam was off during scan
                 if os.path.exists(newfile):
                     os.remove(newfile)
                 continue
