@@ -78,7 +78,6 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                 continue
             os.chdir(currentdir)
             
-            
             if elements:
                 datfiles = []
                 for e in elements:
