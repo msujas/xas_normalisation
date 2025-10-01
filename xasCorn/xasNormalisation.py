@@ -130,7 +130,7 @@ def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEle
         elif excludeElements:
             skip = False
             for e in excludeElements:
-                if f'_{e}_' in root:
+                if f'{e}_xanes' in root or f'{e}_exafs' in root:
                     skip = True
                     break
             if skip:
