@@ -104,11 +104,16 @@ def normaliseRG(regriddir, unit = 'keV'):
         energy = data[0]
         mu = data[1]
         ds = pd.Series(data = mu, index = energy)
-        groupMerge = normalise(ds)
-        header = f'edge: {groupMerge.e0}\n'
-        header += f'edge step: {groupMerge.edge_step}\n'
-        header += f'energy({unit}) mu_norm'
-        np.savetxt(file.replace('.dat','.nor'), np.array([energy,groupMerge.flat]).transpose(), header=header, fmt = '%.5f')
+        try:
+            groupMerge = normalise(ds)
+            header = f'edge: {groupMerge.e0}\n'
+            header += f'edge step: {groupMerge.edge_step}\n'
+            header += f'energy({unit}) mu_norm'
+            np.savetxt(file.replace('.dat','.nor'), np.array([energy,groupMerge.flat]).transpose(), 
+                    header=header, fmt = '%.5f')
+        except AttributeError:
+            print(f'couldn\'t normalise {file}')
+
 
 def run(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeElements = None, averaging = 1):
     if not os.path.exists(direc):
