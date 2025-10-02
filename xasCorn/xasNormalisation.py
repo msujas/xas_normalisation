@@ -89,11 +89,15 @@ def normaliseRG(regriddir, unit = 'keV'):
                 os.makedirs(fluodir)
             muF = df['muF1']
             muF.index = energy
-            groupF = normalise(muF)
-            headerF = f'{header}\n#edge: {groupF.e0}\n'
-            headerF += f'#edge step: {groupF.edge_step}\n'
-            headerF += ' '.join(columns)
-            np.savetxt(f'{regriddir}/norm/fluo/{filen}',np.array([energy,groupF.flat]).transpose(),header=headerF, fmt = '%.5f')
+            try:
+                groupF = normalise(muF)
+                headerF = f'{header}\n#edge: {groupF.e0}\n'
+                headerF += f'#edge step: {groupF.edge_step}\n'
+                headerF += ' '.join(columns)
+                np.savetxt(f'{regriddir}/norm/fluo/{filen}',np.array([energy,groupF.flat]).transpose(),
+                           header=headerF, fmt = '%.5f')
+            except AttributeError:
+                print(f'couldn\'t normalise fluo for {file}')
     mergeFiles = glob(f'{regriddir}/merge/*.dat')
     for file in mergeFiles:
         data = np.loadtxt(file,unpack=True,comments='#')
