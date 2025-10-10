@@ -19,7 +19,7 @@ def kev_to_angle(energykeV):
     
 edges = ['K','L1','L2','L3','main']
 edgesdf = pd.DataFrame(columns = edges)
-thetaOffset = 0.115 #degrees
+thetaOffset =  0.103 # 0.115 calculated with old d-spacing #degrees
 for n in range(22,84):
     element = atomic_symbol(n)
     elementEdges = []
@@ -102,3 +102,9 @@ xanes_programDF.to_csv('xanes_programs.dat',sep = ',')
 
 exafs_programDFside.to_csv('exafs_programs_side.dat',sep = ',')
 xanes_programDFside.to_csv('xanes_programs_side.dat',sep = ',')
+
+edgeList = xanes_programDF.index.tolist()
+edgestr = '\n'.join(edgeList)
+f = open('xasCorn/edgeList.txt','w')
+f.write(edgestr)
+f.close()

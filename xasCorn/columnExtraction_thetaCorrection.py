@@ -26,8 +26,16 @@ monCounters = ['mon_1', 'mon_2', 'mon_3', 'mon_4']
 i1counters = ['ion_1_1', 'ion_1_2', 'ion_1_3', 'Det_1', 'Det_2', 'Det_3']
 i2name = 'I2'
 
+eList = ['Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn', 'Ga', 'Ge', 'As', 'Se', 'Br', 'Kr', 'Rb', 'Sr', 'Y', 'Zr', 
+         'Nb', 'Mo', 'Tc', 'Ru', 'Rh', 'Pd', 'Ag', 'Cd', 'In', 'Sn', 'Sb', 'Te', 'I', 'Xe', 'Cs', 'Cs_K', 'Ba', 'Ba_K', 
+         'La', 'La_K', 'Ce', 'Ce_K', 'Pr', 'Pr_K', 'Nd', 'Nd_K', 'Pm', 'Pm_K', 'Sm', 'Sm_K', 'Eu', 'Eu_K', 'Gd', 'Gd_K', 
+         'Tb', 'Tb_K', 'Dy', 'Dy_K', 'Ho', 'Ho_K', 'Er', 'Er_K', 'Tm', 'Tm_K', 'Yb', 'Yb_K', 'Lu', 'Lu_K', 'Hf', 'Ta', 
+         'W', 'Re', 'Os', 'Ir', 'Pt', 'Au', 'Hg', 'Tl', 'Pb', 'Bi']
 
 def angle_to_kev(angle, dspacing = dspacing): #NB the TwoTheta data in the .dat files is really theta
+    #n lam = 2d sin(theta)
+    #E = hc/lam
+    #V = E/qe
     wavelength = 2*dspacing*np.sin(angle*np.pi/(180))
     wavelength_m = wavelength*10**(-10)
     energy_kev = planck*speedOfLight/(wavelength_m*charge*1000)
@@ -36,7 +44,13 @@ def angle_to_kev(angle, dspacing = dspacing): #NB the TwoTheta data in the .dat 
 
 def getoutdir(file, coldir, subdir):
     basename = os.path.splitext(os.path.basename(file))[0]
-    edge = '_'.join(basename.split('_')[-2:])
+    filesplit = basename.split('_')
+    #edge = '_'.join(basename.split('_')[-2:])
+    method = filesplit[-1]
+    fileStart = '_'.join(filesplit[:-1])
+    #print(fileStart)
+    element = [e for e in eList if fileStart.endswith(e)][0]
+    edge = f'{element}_{method}'
     match subdir:
         case 'edge': newdir = f'{coldir}/{edge}/'
         case 'file': newdir = f'{coldir}/{basename}/'
