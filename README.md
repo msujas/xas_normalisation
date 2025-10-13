@@ -36,4 +36,4 @@ options:
                         offset, try -0.005198). Recalibrated to 3.13429 9/2025, so use
                         this after 8/2025
 ```
-It uses Larch (https://xraypy.github.io/xraylarch/index.html, https://iopscience.iop.org/article/10.1088/1742-6596/430/1/012007) to normalise the data.
+It uses Larch (https://xraypy.github.io/xraylarch/index.html, https://iopscience.iop.org/article/10.1088/1742-6596/430/1/012007) to normalise the data. On Windows that requires a C++ distribution - either Microsoft C++ redistributable https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist?view=msvc-170 or C++ desktop development tools on Visual Studio https://visualstudio.microsoft.com/downloads/ .
