@@ -72,14 +72,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
         coldir = currentdir+f'columns{thetaOffset:.3f}/'
     if not os.path.exists(coldir):
         os.makedirs(coldir)
-    '''
-    edge = '_'.join(basename.split('_')[-2:])
-    match subdir:
-        case 'edge':
-            newdir = f'{coldir}/{edge}/'
-        case 'file':
-            newdir = f'{coldir}/{basename}/'
-    '''
+
     newdir = getoutdir(file, coldir, subdir)
     if not os.path.exists(newdir):
         os.makedirs(newdir)
@@ -153,7 +146,8 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
             if len(usedI1s) > 1:
                 usedI2 = usedI1s[1]
                 dfFiltered[i2name] = df[usedI2].values
-            usedFluos = [col for col in fluoCounters if np.max(df[col].values) > 100]
+
+            usedFluos = [col for col in fluoCounters if col in df.columns and np.max(df[col].values) > 50]
             for fluoCounter in usedFluos:
                 dfFiltered[fluoCounter] = df[fluoCounter].values
 

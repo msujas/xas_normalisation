@@ -60,6 +60,7 @@ def normaliseRG(regriddir, unit = 'keV'):
     os.makedirs(f'{regriddir}/norm',exist_ok=True)
     transdir = f'{regriddir}/norm/trans/'
     fluodir = f'{regriddir}/norm/fluo'
+    fluodir2 = f'{regriddir}/norm/fluo2'
     files = glob(f'{regriddir}/*.dat')
     #energycol = f'#energy_offset({unit})'
     for file in files:
