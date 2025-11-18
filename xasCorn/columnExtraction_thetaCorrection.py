@@ -5,9 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from functools import partial
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\xasTest'
 thetaOffset = 0
-
 
 dspacing = 3.13429 #3.13379 old value, before 8/2025
 planck = 6.62607015e-34
@@ -72,8 +70,11 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
         coldir = currentdir+f'columns{thetaOffset:.3f}/'
     if not os.path.exists(coldir):
         os.makedirs(coldir)
-
-    newdir = getoutdir(file, coldir, subdir)
+    try:
+        newdir = getoutdir(file, coldir, subdir)
+    except IndexError:
+        print(f'{file} does not have element information')
+        return
     if not os.path.exists(newdir):
         os.makedirs(newdir)
     if not os.path.exists(f'{newdir}/regrid/'):
@@ -472,5 +473,3 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, exclu
             
     return fileDct
 
-if __name__ == '__main__':
-    fileDct = run(direc=direc, thetaOffset=thetaOffset)

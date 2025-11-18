@@ -12,7 +12,6 @@ from glob import glob
 import time
 import argparse
 
-direc = r'C:\Users\kenneth1a\Documents\beamlineData\xasTest'
 thetaOffset = 0
 waitTime = 1
 
@@ -117,5 +116,3 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
 
         time.sleep(waitTime)
 
-if __name__ == '__main__':
-    main(direc = direc,thetaOffset=thetaOffset,waitTime=waitTime)

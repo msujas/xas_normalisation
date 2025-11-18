@@ -5,9 +5,6 @@ import os, re
 import pandas as pd
 from glob import glob
 
-direc = r''
-
-
 
 def normalise(ds, exafsnorm = 3, xanesnorm = 1):
     '''
@@ -359,5 +356,3 @@ def run2(direc, unit = 'keV', coldirname = 'columns', elements = None, excludeEl
             basefileMu2 = re.sub('[0-9][0-9][0-9][0-9].dat','mu2',file)
             dfMergeMu2.to_csv(f'merge/{basefileMu2}_merge.dat', sep = ' ')
         
-if __name__ == '__main__':
-    run(direc = direc)
