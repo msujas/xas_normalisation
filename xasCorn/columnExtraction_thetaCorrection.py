@@ -48,6 +48,8 @@ def getoutdir(file, coldir, subdir):
     fileStart = '_'.join(filesplit[:-1])
     #print(fileStart)
     element = [e for e in eList if fileStart.endswith(e)][0]
+
+
     edge = f'{element}_{method}'
     match subdir:
         case 'edge': newdir = f'{coldir}/{edge}/'
@@ -467,7 +469,11 @@ def run(direc,thetaOffset=0, unit = 'keV', averaging = 1, elements = None, exclu
         print(os.getcwd())
         for file in datfiles:
             processFile(file, fileDct, currentdir,  thetaOffset, subdir = subdir, dspacing=dspacing)
-            outdir = getoutdir(file, coldir, subdir)           
+            try:
+                outdir = getoutdir(file, coldir, subdir)           
+            except IndexError:
+                print(f'{file} doesn\'t have correct name format')
+                continue
 
             regrid(f'{outdir}', unit = unit, averaging=averaging)
             
