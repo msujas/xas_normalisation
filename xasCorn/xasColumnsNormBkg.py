@@ -105,7 +105,11 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum, 
                                                                  subdir=subdir, dspacing=dspacing)
                     #basename = os.path.splitext(os.path.basename(file))[0]
-                    outdir = columnExtraction_thetaCorrection.getoutdir(file,f'{currentdir}{columndirname}', subdir)
+                    try:
+                        outdir = columnExtraction_thetaCorrection.getoutdir(file,f'{currentdir}{columndirname}', subdir)
+                    except IndexError:
+                        print(f'{file} doesn\'t have correct name format')
+                        continue
                     columnExtraction_thetaCorrection.regrid(outdir, unit = unit, averaging=averaging)
                     #columnDir = os.path.basename(file).replace('.dat','')
 
