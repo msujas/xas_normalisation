@@ -133,7 +133,7 @@ def processFile(file, fileDct, currentdir, thetaOffset, startSpectrum = 0, subdi
             dfFiltered.index.name = '#ZapEnergy_offset'
             energy = dfFiltered.index.values
 
-            usedMon = df[monCounters].max().idxmax()
+            usedMon = df[monCounters].sum().idxmax()
             
             dfFiltered[usedMon] = df[usedMon].values
             newfile = f'{newdir}/{basename}_{spectrum_count:0{digits}d}.dat'
