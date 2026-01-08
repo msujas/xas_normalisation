@@ -60,6 +60,7 @@ class XasProcessor():
         self.columnsubdir = 'columns'
         if thetaOffset != 0:
             self.columnsubdir += f'{thetaOffset:.3f}'
+    
     def getoutdir(self,file):
         coldir = f'{os.path.dirname(file)}/{self.columnsubdir}'
         basename = os.path.splitext(os.path.basename(file))[0]
@@ -195,19 +196,17 @@ class XasProcessor():
         
     def merge(self,regriddir):
         os.makedirs(f'{regriddir}/merge/',exist_ok=True)
+        print(f'merging {regriddir}')
         mergedct = {}
         files = set(['_'.join(file.split('_')[:-1]) for file in glob(f'{regriddir}/*.dat')])
-        print(files)
         energycol = f'energy_offset({self.unit})'
         for file in files:
             basefile = os.path.basename(file)
             files2 = glob(f'{file}*.dat')
-            print(files2)
             mergedct[file] = {}
             e0 = 0
             eend = 100000
             for f in files2:
-                print(f)
                 fr = open(f,'r')
                 headcol = [line for line in fr.readlines() if line.startswith('#')][-1].replace('\n','').replace('#','')
                 fr.close()
@@ -249,7 +248,11 @@ class XasProcessor():
                 muFsum = muFsum/muFcount
                 np.savetxt(f'{regriddir}/merge/{basefile}_F_merge.dat',np.array([energyAxis,muFsum]).transpose(),fmt = '%.5f',
                         header=f'{energycol} muF')
-            
+    def getElement(self,coldir):
+        for e in eList:
+            if f'{e}_exafs' or f'{e}_xanes' in coldir:
+                return e
+        
     def regrid(self,coldir,   i1countersRG = None, monCountersRG = None):
         if i1countersRG == None:
             i1countersRG = i1counters
@@ -257,6 +260,13 @@ class XasProcessor():
             monCountersRG = monCounters
         if not os.path.exists(coldir):
             return
+        element = self.getElement(coldir)
+        if self.elements:
+            if element not in self.elements:
+                return
+        elif self.excludeElements:
+            if element in self.excludeElements:
+                return
         print(f'regridding {coldir}')
         print(coldir)
         files = glob(f'{coldir}/*.dat')
@@ -464,7 +474,6 @@ class XasProcessor():
             datfiles = glob(f'{root}/*.dat')
             if len(datfiles) == 0:
                 continue
-            print(os.getcwd())
             for file in datfiles:
                 self.processFile(file)
                 try:
@@ -472,6 +481,8 @@ class XasProcessor():
                 except IndexError:
                     print(f'{file} doesn\'t have correct name format')
                     continue
-                self.regrid(f'{outdir}')
+                if self.fileDct[file].scanno == -1:
+                    continue
+                self.regrid(outdir)
                 
 

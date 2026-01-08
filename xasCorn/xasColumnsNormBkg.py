@@ -59,13 +59,11 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
         print('unit must be "keV" or "eV"')
         return
     print(direc)
-    columndirname = 'columns'
-    if thetaOffset != 0:
-        columndirname = f'columns{thetaOffset:.3f}'
 
     print('running column extraction')
     fileprocessor = columnExtraction_thetaCorrection.XasProcessor(unit = unit, thetaOffset=thetaOffset, dspacing=dspacing, averaging=averaging,
                                                                   elements=elements, excludeElements=excludeElements, subdir=subdir)
+    columndirname = fileprocessor.columnsubdir
     fileprocessor.run(direc)
     print('running normalisation')
     xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
@@ -75,7 +73,6 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
             print('looking for new files')
             repeat = False
         for root, dirs, files in os.walk(direc):
-            currentdir = root + '/'
             if 'columns' in root:
                 continue
             datfiles = glob(f'{root}/*.dat')
@@ -86,7 +83,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     if file not in list(fileprocessor.fileDct.keys()):
                         startSpectrum = 0
                     else:
-                        startSpectrum = fileprocessor.fileDct[file].scanno-1
+                        startSpectrum = fileprocessor.fileDct[file].scanno
                     repeat = True
                     print(f'running column extraction on {file}')
                     fileprocessor.processFile(file,  startSpectrum=startSpectrum)
