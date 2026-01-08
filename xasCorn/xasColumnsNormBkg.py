@@ -64,8 +64,9 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
         columndirname = f'columns{thetaOffset:.3f}'
 
     print('running column extraction')
-    fileDct = columnExtraction_thetaCorrection.run(direc,thetaOffset, unit = unit, averaging = averaging, elements=elements, 
-                                                   excludeElements=excludeElements, subdir=subdir, dspacing=dspacing)
+    fileprocessor = columnExtraction_thetaCorrection.XasProcessor(unit = unit, thetaOffset=thetaOffset, dspacing=dspacing, averaging=averaging,
+                                                                  elements=elements, excludeElements=excludeElements, subdir=subdir)
+    fileprocessor.run(direc)
     print('running normalisation')
     xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
     repeat = True
@@ -77,41 +78,24 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
             currentdir = root + '/'
             if 'columns' in root:
                 continue
-            os.chdir(currentdir)
-            
-            if elements:
-                datfiles = []
-                for e in elements:
-                    datfiles += glob(f'*_{e}_*.dat')
-            elif excludeElements:
-                datfiles = glob(f'*.dat')
-                for file in datfiles:
-                    for e in excludeElements:
-                        if f'_{e}_' in file:
-                            datfiles.remove(file)
-            else:
-                datfiles = glob(f'*.dat')
-            datfiles = [currentdir + file for file in datfiles]
+            datfiles = glob(f'{root}/*.dat')
             for file in datfiles:
                 if 'tempLog' in file:
                     continue
-                if file not in list(fileDct.keys()) or os.path.getmtime(file) != fileDct[file][0]:
-                    if file not in list(fileDct.keys()):
+                if file not in list(fileprocessor.fileDct.keys()) or os.path.getmtime(file) != fileprocessor.fileDct[file].mtime:
+                    if file not in list(fileprocessor.fileDct.keys()):
                         startSpectrum = 0
                     else:
-                        startSpectrum = fileDct[file][1]-1
+                        startSpectrum = fileprocessor.fileDct[file].scanno-1
                     repeat = True
                     print(f'running column extraction on {file}')
-                    columnExtraction_thetaCorrection.processFile(file, fileDct, currentdir, thetaOffset, startSpectrum=startSpectrum, 
-                                                                 subdir=subdir, dspacing=dspacing)
-                    #basename = os.path.splitext(os.path.basename(file))[0]
+                    fileprocessor.processFile(file,  startSpectrum=startSpectrum)
                     try:
-                        outdir = columnExtraction_thetaCorrection.getoutdir(file,f'{currentdir}{columndirname}', subdir)
+                        outdir = fileprocessor.getoutdir(file)
                     except IndexError:
                         print(f'{file} doesn\'t have correct name format')
                         continue
-                    columnExtraction_thetaCorrection.regrid(outdir, unit = unit, averaging=averaging)
-                    #columnDir = os.path.basename(file).replace('.dat','')
+                    fileprocessor.regrid(outdir)
 
                     if os.path.exists(outdir):
                         print(f'running normalisation in {outdir}')
@@ -119,4 +103,3 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                                              excludeElements=excludeElements, averaging=averaging)
 
         time.sleep(waitTime)
-
