@@ -63,7 +63,6 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     print('running column extraction')
     fileprocessor = columnExtraction_thetaCorrection.XasProcessor(unit = unit, thetaOffset=thetaOffset, dspacing=dspacing, averaging=averaging,
                                                                   elements=elements, excludeElements=excludeElements, subdir=subdir)
-    columndirname = fileprocessor.columnsubdir
     fileprocessor.run(direc)
     print('running normalisation')
     fileprocessor.runNormalisation(direc)

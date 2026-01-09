@@ -4,6 +4,7 @@ import numpy as np
 import os, re
 import pandas as pd
 from glob import glob
+from functools import partial
 
 
 def normalise(ds, exafsnorm = 3, xanesnorm = 1):
@@ -60,10 +61,11 @@ def normaliseRG(regriddir, unit = 'keV'):
     fluodir2 = f'{regriddir}/norm/fluo2'
     files = glob(f'{regriddir}/*.dat')
     #energycol = f'#energy_offset({unit})'
+    savenorm = partial(np.savetxt, fmt = '%.5f', comments = '#')
     for file in files:
         print(file)
         f = open(file,'r')
-        header = [line for line in f.readlines() if line.startswith('#')]
+        header = [line.replace('#','') for line in f.readlines() if line.startswith('#')]
         f.close()
         columns = header[-1].replace('\n','').split()
         energycol = columns[0]
@@ -78,10 +80,10 @@ def normaliseRG(regriddir, unit = 'keV'):
             muT = df['muT']
             muT.index = energy
             groupT = normalise(muT)
-            headerT = header + f'\n#edge: {groupT.e0}\n'
-            headerT += f'#edge step: {groupT.edge_step}\n'
-            headerT += ' '.join(columns)     
-            np.savetxt(f'{regriddir}/norm/trans/{filen}', np.array([energy,groupT.flat]).transpose(),header=headerT, fmt = '%.5f')
+            headerT = header + f'edge: {groupT.e0}\n'
+            headerT += f'edge step: {groupT.edge_step}\n'
+            headerT += f'{columns[0]} muTnorm'    
+            savenorm(f'{regriddir}/norm/trans/{filen}', np.array([energy,groupT.flat]).transpose(),header=headerT)
         if 'muF1' in columns:
             if not os.path.exists(fluodir):
                 os.makedirs(fluodir)
@@ -89,11 +91,11 @@ def normaliseRG(regriddir, unit = 'keV'):
             muF.index = energy
             try:
                 groupF = normalise(muF)
-                headerF = f'{header}\n#edge: {groupF.e0}\n'
-                headerF += f'#edge step: {groupF.edge_step}\n'
-                headerF += ' '.join(columns)
-                np.savetxt(f'{regriddir}/norm/fluo/{filen}',np.array([energy,groupF.flat]).transpose(),
-                           header=headerF, fmt = '%.5f')
+                headerF = f'{header}edge: {groupF.e0}\n'
+                headerF += f'edge step: {groupF.edge_step}\n'
+                headerF += f'{columns[0]} muFnorm'
+                savenorm(f'{regriddir}/norm/fluo/{filen}',np.array([energy,groupF.flat]).transpose(),
+                           header=headerF)
             except AttributeError:
                 print(f'couldn\'t normalise fluo for {file}')
     mergeFiles = glob(f'{regriddir}/merge/*.dat')
@@ -107,8 +109,8 @@ def normaliseRG(regriddir, unit = 'keV'):
             header = f'edge: {groupMerge.e0}\n'
             header += f'edge step: {groupMerge.edge_step}\n'
             header += f'energy({unit}) mu_norm'
-            np.savetxt(file.replace('.dat','.nor'), np.array([energy,groupMerge.flat]).transpose(), 
-                    header=header, fmt = '%.5f')
+            savenorm(file.replace('.dat','.nor'), np.array([energy,groupMerge.flat]).transpose(), 
+                    header=header)
         except AttributeError:
             print(f'couldn\'t normalise {file}')
 
