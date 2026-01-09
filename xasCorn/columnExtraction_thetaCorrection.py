@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from functools import partial
+import xasCorn.xasNormalisation as xasn
 
 thetaOffset = 0
 
@@ -60,7 +61,9 @@ class XasProcessor():
         self.columnsubdir = 'columns'
         if thetaOffset != 0:
             self.columnsubdir += f'{thetaOffset:.3f}'
-    
+        self.angle_to_kev_func = partial(angle_to_kev, dspacing=self.dspacing)
+        self.runNormalisation = partial(xasn.run,unit = self.unit, coldirname=self.columnsubdir, elements=self.elements, 
+                                        excludeElements=self.excludeElements, averaging= self.averaging)
     def getoutdir(self,file):
         coldir = f'{os.path.dirname(file)}/{self.columnsubdir}'
         basename = os.path.splitext(os.path.basename(file))[0]
@@ -93,7 +96,7 @@ class XasProcessor():
                 if f'_{e}_exafs.dat' in file or f'_{e}_xanes.dat' in file:
                     self.fileDct[file] = FileInfo(filemtime,-1)
                     return
-        angle_to_kev_func = partial(angle_to_kev, dspacing=self.dspacing)
+        
         basename = os.path.splitext(os.path.basename(file))[0]
         coldir = f'{currentdir}/{self.columnsubdir}/'
 
@@ -155,7 +158,7 @@ class XasProcessor():
 
                 dfFiltered = df[xColumns].copy(deep=True)
                 dfFiltered['Theta_offset'] =  dfFiltered['TwoTheta'].apply(lambda x: np.round(x + self.thetaOffset,7))
-                dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(angle_to_kev_func)
+                dfFiltered['ZapEnergy_offset'] = dfFiltered['Theta_offset'].apply(self.angle_to_kev_func)
                 dfFiltered.set_index('ZapEnergy_offset',inplace = True)
                 dfFiltered.index.name = '#ZapEnergy_offset'
                 energy = dfFiltered.index.values
@@ -168,7 +171,7 @@ class XasProcessor():
                     if os.path.exists(newfile):
                         os.remove(newfile)
                     continue
-                usedI1s = [col for col in i1counters if np.max(df[col].values) > 10000*timeStep]
+                usedI1s = [col for col in i1counters if np.max(df[col].values) > 10000*timeStep and np.min(df[col].values) > 1]
                 if usedI1s:
                     usedI1 = usedI1s[0] #df[i1counters].max().idxmax()
                     dfFiltered[usedI1] = df[usedI1].values
@@ -484,5 +487,5 @@ class XasProcessor():
                 if self.fileDct[file].scanno == -1:
                     continue
                 self.regrid(outdir)
-                
+
 

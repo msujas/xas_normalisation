@@ -4,9 +4,9 @@ constantly looking for new files or if files have been modified and rerunning in
 a subdirectory if it finds something there
 '''
 if not __name__ == '__main__':
-    from . import columnExtraction_thetaCorrection, xasNormalisation
+    from . import columnExtraction_thetaCorrection
 else:
-    import columnExtraction_thetaCorrection, xasNormalisation
+    import columnExtraction_thetaCorrection
 import os
 from glob import glob
 import time
@@ -66,7 +66,7 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     columndirname = fileprocessor.columnsubdir
     fileprocessor.run(direc)
     print('running normalisation')
-    xasNormalisation.run(direc, unit = unit, coldirname=columndirname, elements=elements, excludeElements=excludeElements, averaging=averaging)
+    fileprocessor.runNormalisation(direc)
     repeat = True
     while True:
         if repeat == True:
@@ -96,7 +96,6 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
 
                     if os.path.exists(outdir):
                         print(f'running normalisation in {outdir}')
-                        xasNormalisation.run(outdir, unit = unit, coldirname=columndirname, elements=elements, 
-                                             excludeElements=excludeElements, averaging=averaging)
+                        fileprocessor.runNormalisation(outdir)
 
         time.sleep(waitTime)
