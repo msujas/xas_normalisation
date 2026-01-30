@@ -3,24 +3,20 @@ script for running the column extraction and xas normalisation in the background
 constantly looking for new files or if files have been modified and rerunning in
 a subdirectory if it finds something there
 '''
-if not __name__ == '__main__':
-    from . import columnExtraction_thetaCorrection
-else:
-    import columnExtraction_thetaCorrection
+
+from . import columnExtraction_thetaCorrection as ce
 import os
 from glob import glob
 import time
 import argparse
 
-thetaOffset = 0
-waitTime = 1
-
-def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
+def main(direc = os.path.curdir,thetaOffset = 0):
     '''
     arguments: 
     -to - theta offset to apply to mono to correct energy range (default 0)
     directory - the directory to run in (default current directory in cmd)
     '''
+    waitTime = 1
     parser = argparse.ArgumentParser()
     parser.add_argument('directory',nargs='?', default=direc, help = 'the directory to run in. Default is current directory')
     parser.add_argument('-to','--thetaOffset', type=float, default=thetaOffset, 
@@ -61,15 +57,15 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
     print(direc)
 
     print('running column extraction')
-    fileprocessor = columnExtraction_thetaCorrection.XasProcessor(unit = unit, thetaOffset=thetaOffset, dspacing=dspacing, averaging=averaging,
-                                                                  elements=elements, excludeElements=excludeElements, subdir=subdir)
+    fileprocessor = ce.XasProcessor(unit = unit, thetaOffset=thetaOffset, dspacing=dspacing, averaging=averaging,
+                                    elements=elements, excludeElements=excludeElements, subdir=subdir)
     fileprocessor.run(direc)
     print('running normalisation')
     fileprocessor.runNormalisation(direc)
     repeat = True
     while True:
         if repeat == True:
-            print('looking for new files')
+            print('looking for new files (ctrl + c to quit)')
             repeat = False
         for root, dirs, files in os.walk(direc):
             if 'columns' in root:
@@ -96,5 +92,8 @@ def main(direc = os.path.curdir,thetaOffset = 0, waitTime = 1):
                     if os.path.exists(outdir):
                         print(f'running normalisation in {outdir}')
                         fileprocessor.runNormalisation(outdir)
-
-        time.sleep(waitTime)
+        try:
+            time.sleep(waitTime)
+        except KeyboardInterrupt:
+            print('caught keyboard interrupt, exiting')
+            return

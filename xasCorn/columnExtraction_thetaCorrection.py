@@ -41,8 +41,6 @@ def angle_to_kev(angle, dspacing = dspacing): #NB the TwoTheta data in the .dat 
     return np.round(energy_kev,6)
 
 
-
-
 class FileInfo():
     def __init__(self, mtime, scanno=-1):
         self.mtime = mtime
@@ -194,10 +192,11 @@ class XasProcessor():
                 f2.close()
                 dfFiltered.to_csv(newfile,sep = ' ',mode = 'a')
                 print(newfile)
-
         self.fileDct[file] = FileInfo(filemtime,spectrum_count)
         
     def merge(self,regriddir):
+        if not os.path.exists(regriddir):
+            return
         os.makedirs(f'{regriddir}/merge/',exist_ok=True)
         print(f'merging {regriddir}')
         mergedct = {}
@@ -278,8 +277,9 @@ class XasProcessor():
 
         if len(files) == 0:
             return
-        if not os.path.exists(f'{coldir}/regrid'):
-            os.makedirs(f'{coldir}/regrid')
+        transdir = f'{coldir}/regrid/trans'
+        fluodir = f'{coldir}/regrid/fluo'
+
         avdir = f'{coldir}/regridAv{self.averaging}/'
         if self.averaging > 1 and not os.path.exists(avdir):
             os.makedirs(avdir)
@@ -309,7 +309,6 @@ class XasProcessor():
             minindex = np.argmin(df.index.values)
             dfFilteredDct[basefile]= df.iloc[minindex:]
 
-        
         ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct]
         ZEmins = np.array([np.min(dfFilteredDct[file].index.values) for file in dfFilteredDct])
         greatestMin = np.max(ZEmins)
@@ -338,16 +337,17 @@ class XasProcessor():
             ZEmax = -1
             Emin = grid[0]
             Emax = grid[-1]
-            newfilerg = f'{coldir}/regrid/{file}'
+            newfilergT = f'{coldir}/regrid/trans/{file}'
+            newfilergF = f'{coldir}/regrid/fluo/{file}'
 
             if len(dfFilteredDct[file].index.values) < len(grid) - no_tries:
                 print(f'{file} too short, couldn\'t be regridded')
-                if os.path.exists(newfilerg):
-                    os.remove(newfilerg)
+                if os.path.exists(newfilergT):
+                    os.remove(newfilergT)
+                if os.path.exists(newfilergF):
+                    os.remove(newfilergF)
                 continue
-            f = open(newfilerg,'w')
-            f.write(headers[n])
-            f.close()
+
             regridDF = pd.DataFrame()
             if len([col for col in dfFilteredDct[file].columns if col in monCountersRG]) == 0:
                 continue
@@ -363,11 +363,19 @@ class XasProcessor():
             usedi1counters = [c for c in dfFilteredDct[file].columns if c in i1countersRG]
             if usedi1counters:
                 trans = True
+                os.makedirs(transdir,exist_ok=True)
+                f = open(newfilergT,'w')
+                f.write(headers[n])
+                f.close()
             else:
                 trans = False
             usedFluos = [col for col in dfFilteredDct[file].columns if col in fluoCounters]
             if usedFluos:
                 fluo = True
+                os.makedirs(fluodir,exist_ok=True)
+                f = open(newfilergF,'w')
+                f.write(headers[n])
+                f.close()
             else:
                 fluo=False
 
@@ -403,7 +411,10 @@ class XasProcessor():
 
             if len(regridDF.columns) == 0:
                 continue
-            regridDF.to_csv(newfilerg,sep = ' ',mode = 'a')
+            if trans:
+                regridDF[['muT', monCounter, i1counter]].to_csv(newfilergT,sep=' ', mode='a')
+            if fluo:
+                regridDF[['muF1', monCounter, *usedFluos]].to_csv(newfilergF,sep = ' ',mode = 'a')
             
             if self.averaging <= 1:
                 continue
@@ -448,7 +459,9 @@ class XasProcessor():
                         avMuF[c] = np.append(avMuF[c] ,[averagingDct[i][f'muF{c+1}'][minindex:maxindex+1]], axis = 0)
                         avFluoRaw[c] = np.append(avFluoRaw[c],[averagingDct[i][fluoCounter][minindex:maxindex+1]], axis = 0)
                 avDf = pd.DataFrame()
-                avDf[f'#ZapEnergy({self.unit})'] = avGrid
+                eAxis = f'#ZapEnergy({self.unit})'
+                avDf[eAxis] = avGrid
+                avDf = avDf.set_index(eAxis)
                 if transAv[i]:
                     avMuT = np.average(avMuT,axis = 1)
                     avDf['muT'] = avMuT
@@ -458,16 +471,26 @@ class XasProcessor():
                     avDf[f'muF{c+1}'] = avMuF[c]
                     avDf[fluoCounter] = avFluoRaw[c]
                 
-                fname = f'{avdir}/{file}'
-                f = open(fname,'w')
-                f.write(avheader)
-                f.close()
-                avDf.to_csv(fname, index = False, mode = 'a', sep = ' ')
+                fnameT = f'{avdir}/trans/{file}'
+                fnameF = f'{avdir}/fluo/{file}'
+                if trans:
+                    os.makedirs(os.path.dirname(fnameT), exist_ok=True)
+                    f = open(fnameT,'w')
+                    f.write(avheader)
+                    f.close()
+                    avDf[['muT']].to_csv(fnameT, index = True, mode = 'a', sep = ' ')
+                if fluo:
+                    os.makedirs(os.path.dirname(fnameF), exist_ok=True)
+                    f = open(fnameF,'w')
+                    f.write(avheader)
+                    f.close()
+                    avDf[['muF1']].to_csv(fnameF, index = True, mode = 'a', sep = ' ')
                 avheader = ''
                 fluoAv = []
                 transAv = []
             averagingCount += 1
-        self.merge(f'{coldir}/regrid')
+        self.merge(transdir)
+        self.merge(fluodir)
 
     def run(self,direc):
         for root, dirs, files in os.walk(direc):
