@@ -5,6 +5,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from functools import partial
 import xasCorn.xasNormalisation as xasn
+import sys
 
 thetaOffset = 0
 
@@ -47,7 +48,8 @@ class FileInfo():
         self.scanno = scanno
 
 class XasProcessor():
-    def __init__(self,unit = 'keV', thetaOffset = 0 , dspacing=dspacing, averaging = 1, elements = None, excludeElements = None, subdir = 'edge'):
+    def __init__(self,unit = 'keV', thetaOffset = 0 , dspacing=dspacing, averaging = 1, elements = None, 
+                 excludeElements = None, subdir = 'edge'):
         self.fileDct = {}
         self.unit = unit
         self.thetaOffset = thetaOffset
@@ -280,9 +282,6 @@ class XasProcessor():
         transdir = f'{coldir}/regrid/trans'
         fluodir = f'{coldir}/regrid/fluo'
 
-        avdir = f'{coldir}/regridAv{self.averaging}/'
-        if self.averaging > 1 and not os.path.exists(avdir):
-            os.makedirs(avdir)
 
         dfFilteredDct = {}
         headers = []
@@ -319,17 +318,12 @@ class XasProcessor():
         
         no_tries = 30
         grid = np.round(np.arange((greatestMin+spacing),ZE[-1],spacing),5)
-        averagingCount = 0
-        averagingDct = {}
-        avheader = ''
         fluoAv = []
         transAv = []
         oldbasefile = ''
         for n, file in enumerate(dfFilteredDct):
             basefile = '_'.join(file.split('_')[:-1])
             if basefile != oldbasefile:
-                averagingCount = 0
-                avheader = ''
                 fluoAv = []
                 transAv = []
             oldbasefile = basefile
@@ -416,82 +410,83 @@ class XasProcessor():
             if fluo:
                 regridDF[['muF1', monCounter, *usedFluos]].to_csv(newfilergF,sep = ' ',mode = 'a')
             
-            if self.averaging <= 1:
-                continue
 
-            averagingDct[averagingCount] = {}
-            averagingDct[averagingCount]['ZEmin'] = ZEmin
-            averagingDct[averagingCount]['ZEmax'] = ZEmax
-            averagingDct[averagingCount]['ZapEnergy'] = newgrid
-            avheader += headers[n]
-            if usedi1counters:
-                averagingDct[averagingCount]['muT'] = regridDF['muT'].values
-
-            for c,fluoCounter in enumerate(usedFluos):
-                averagingDct[averagingCount][f'muF{c+1}'] = regridDF[f'muF{c+1}'].values
-                averagingDct[averagingCount][fluoCounter] = regridDF[fluoCounter].values
-            if averagingCount == self.averaging-1:
-                averagingCount = -1
-                zemins = np.array([averagingDct[i]['ZapEnergy'][0] for i in np.arange(self.averaging, dtype = np.uint8)])
-                zemaxs = np.array([averagingDct[i]['ZapEnergy'][-1] for i in np.arange(self.averaging, dtype = np.uint8)])
-                zeminIs = np.array([averagingDct[i]['ZEmin'] for i in np.arange(self.averaging, dtype = np.uint8)])
-                zemaxIs = np.array([averagingDct[i]['ZEmax'] for i in np.arange(self.averaging, dtype = np.uint8)])
-                zeminmax = np.max(zemins)
-                zemaxmin = np.min(zemaxs)
-                zeminI = np.max(zeminIs)
-                zemaxI = np.min(zemaxIs)
-                avGrid = grid[zeminI:zemaxI]
-                avMuT = np.empty(shape = (len(avGrid),self.averaging))
-                avMuF = {}
-                avFluoRaw = {}
-                for i in range(len(usedFluos)):
-                    avMuF[i] =  np.empty(shape = (0,len(avGrid)))
-                    avFluoRaw[i] = np.empty(shape = (0,len(avGrid)))
-                for i in range(self.averaging):
-                    zapenergy = averagingDct[i]['ZapEnergy']
-                    minindex = np.argmin(np.abs(zapenergy - zeminmax))
-                    maxindex = np.argmin(np.abs(zapenergy - zemaxmin))
-                    if transAv[i]:
-                        avMuT[:,i] = averagingDct[i]['muT'][minindex:maxindex+1]
-                    for c,fluoCounter in enumerate(usedFluos):
-                        if not f'muF{c+1}':
-                            continue
-                        avMuF[c] = np.append(avMuF[c] ,[averagingDct[i][f'muF{c+1}'][minindex:maxindex+1]], axis = 0)
-                        avFluoRaw[c] = np.append(avFluoRaw[c],[averagingDct[i][fluoCounter][minindex:maxindex+1]], axis = 0)
-                avDf = pd.DataFrame()
-                eAxis = f'#ZapEnergy({self.unit})'
-                avDf[eAxis] = avGrid
-                avDf = avDf.set_index(eAxis)
-                if transAv[i]:
-                    avMuT = np.average(avMuT,axis = 1)
-                    avDf['muT'] = avMuT
-                for c,fluoCounter in enumerate(usedFluos):
-                    avMuF[c] = np.average(avMuF[c], axis = 0)
-                    avFluoRaw[c] = np.average(avFluoRaw[c],axis = 0)
-                    avDf[f'muF{c+1}'] = avMuF[c]
-                    avDf[fluoCounter] = avFluoRaw[c]
-                
-                fnameT = f'{avdir}/trans/{file}'
-                fnameF = f'{avdir}/fluo/{file}'
-                if trans:
-                    os.makedirs(os.path.dirname(fnameT), exist_ok=True)
-                    f = open(fnameT,'w')
-                    f.write(avheader)
-                    f.close()
-                    avDf[['muT']].to_csv(fnameT, index = True, mode = 'a', sep = ' ')
-                if fluo:
-                    os.makedirs(os.path.dirname(fnameF), exist_ok=True)
-                    f = open(fnameF,'w')
-                    f.write(avheader)
-                    f.close()
-                    avDf[['muF1']].to_csv(fnameF, index = True, mode = 'a', sep = ' ')
-                avheader = ''
-                fluoAv = []
-                transAv = []
-            averagingCount += 1
+        self.average(transdir,averaging=self.averaging)
+        self.average(fluodir, averaging=self.averaging)
         self.merge(transdir)
         self.merge(fluodir)
 
+    def average(self, regriddir:str, averaging:int ):
+        if averaging <=1:
+            return
+        files = glob(f'{regriddir}/*.dat')
+        if regriddir[-1] == '\\' or regriddir[-1] == '/':
+            regriddir = regriddir[:-1]
+        technique = os.path.basename(regriddir)
+        avdir = f'{regriddir}/../../regridAv{averaging}/{technique}'
+        os.makedirs(avdir, exist_ok=True)
+        print(f'averaging {averaging} for {regriddir}')
+        def getbasename(file:str):
+            basefile = os.path.basename(file)
+            return '_'.join(basefile.split('_')[:-1])
+        
+        basenames = []
+        for file in files:
+            basename = getbasename(file)
+            basenames.append(basename)
+        basenames = set(basenames)
+        #print(basenames)
+        for basename in basenames:
+            i = 0
+            for file in glob(f'{regriddir}/{basename}*.dat'):
+                energy, mu = np.loadtxt(file, usecols=(0,1), unpack=True, comments='#')
+                f = open(file,'r')
+                header = ''.join([line for line in f.readlines() if line[0]=='#'][:-1])
+                f.close()
+                if i == 0:
+                    avlist = []
+                    fullheader = ''
+                    minenergy = energy[0]
+                    maxenergy = energy[-1]
+                if np.min(energy) > minenergy:
+                    minenergy = energy[0]
+                if np.max(energy) < maxenergy:
+                    maxenergy = energy[-1]
+                    
+                fullheader += header
+                avlist.append(np.array([energy,mu]))
+                if i == averaging-1:
+                    techstring = technique[0].upper()
+                    if techstring == 'F':
+                        techstring += '1'
+                    fullheader += f'#energy_offset(keV) mu{techstring}'
+                    minindex =  np.argmin(np.abs(energy-minenergy))
+                    maxindex = np.argmin(np.abs(energy-maxenergy))
+                    energyaxis = energy[minindex:maxindex+1]
+                    avmu = np.empty(shape = (len(energyaxis), averaging))
+                    for c,av in enumerate(avlist):
+                        minindex = np.argmin(np.abs(av[0]-minenergy))
+                        maxindex = np.argmin(np.abs(av[0]-maxenergy))
+                        try:
+                            avtrunc = av[1][minindex:maxindex+1]
+                            avmu[:,c] = avtrunc
+                        except Exception as e:
+                            print(minenergy,maxenergy, c)
+                            print(energyaxis[0], energyaxis[-1])
+                            print(avtrunc.shape)
+                            print(avtrunc)
+                            print(av.shape)
+                            print(len(energyaxis), len(avtrunc[0]) )
+                            raise e
+                    avmu = np.mean(avmu, axis = 1)
+                    avdata = np.array([energyaxis,avmu])
+                    basefile = os.path.basename(file)
+                    newfile = f'{avdir}/{basefile}'
+                    print(f'saving {newfile}')
+                    np.savetxt(newfile, avdata.transpose(), fmt = "%.6f", header=fullheader, comments='')
+                    i = -1
+                i +=1
+            
     def run(self,direc):
         for root, dirs, files in os.walk(direc):
             if 'columns' in root:

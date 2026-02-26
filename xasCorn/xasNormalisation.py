@@ -7,7 +7,7 @@ from glob import glob
 from functools import partial
 
 
-def normalise(ds, exafsnorm = 3, xanesnorm = 1):
+def normalise(ds: pd.Series, exafsnorm = 3, xanesnorm = 1):
     '''
     Takes a pandas Series with values as mu and index as energy as an argument.
     The normalisation orders seem to be different between Athena and Larch. 
