@@ -49,7 +49,7 @@ class FileInfo():
 
 class XasProcessor():
     def __init__(self,unit = 'keV', thetaOffset = 0 , dspacing=dspacing, averaging = 1, elements = None, 
-                 excludeElements = None, subdir = 'edge'):
+                 excludeElements = None, subdir = 'edge', cpsThreshold = 10000):
         self.fileDct = {}
         self.unit = unit
         self.thetaOffset = thetaOffset
@@ -59,6 +59,7 @@ class XasProcessor():
         self.excludeElements = excludeElements
         self.subdir = subdir
         self.columnsubdir = 'columns'
+        self.cpsThreshold = cpsThreshold
         if thetaOffset != 0:
             self.columnsubdir += f'{thetaOffset:.3f}'
         self.angle_to_kev_func = partial(angle_to_kev, dspacing=self.dspacing)
@@ -78,6 +79,7 @@ class XasProcessor():
             case _: raise ValueError('subdir must be "edge" or "file"')
         return newdir
     def processFile(self,file, startSpectrum = 0 ):
+        
         currentdir = os.path.dirname(file)
         f = open(file,'r')
         data = f.read()
@@ -171,7 +173,7 @@ class XasProcessor():
                     if os.path.exists(newfile):
                         os.remove(newfile)
                     continue
-                usedI1s = [col for col in i1counters if np.max(df[col].values) > 10000*timeStep and np.min(df[col].values) > 1]
+                usedI1s = [col for col in i1counters if np.max(df[col].values) > self.cpsThreshold*timeStep and np.min(df[col].values) > 1]
                 if usedI1s:
                     usedI1 = usedI1s[0] #df[i1counters].max().idxmax()
                     dfFiltered[usedI1] = df[usedI1].values
