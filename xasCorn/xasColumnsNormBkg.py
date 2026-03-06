@@ -34,7 +34,7 @@ def main(direc = os.path.curdir,thetaOffset = 0):
     parser.add_argument('-d','--dspacing',type=float, default=3.13429, help='monochromator d-spacing (default 3.13429). If data from '\
                         'before 9/2025, should be 3.13379 (or use the new value and apply a theta offset, try -0.005198). ' \
                         'Recalibrated to 3.13429 9/2025, so use this after 8/2025')
-    parser.add_argument('-ct', '--cpsthreshold', type = int, default=10000, help='counts per second threshold for I1 counters')
+    parser.add_argument('-ct', '--cpsthreshold', type = int, default=10000, help='counts per second threshold for I1 counters, default 10000')
 
     args = parser.parse_args()
     thetaOffset = args.thetaOffset

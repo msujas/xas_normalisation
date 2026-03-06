@@ -1,11 +1,10 @@
-import os, re
+import os
 from glob import glob
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
 from functools import partial
 import xasCorn.xasNormalisation as xasn
-import sys
 
 thetaOffset = 0
 
@@ -490,7 +489,7 @@ class XasProcessor():
                 i +=1
             
     def run(self,direc):
-        for root, dirs, files in os.walk(direc):
+        for root, _dirs, _files in os.walk(direc):
             if 'columns' in root:
                 continue
             print(root)
