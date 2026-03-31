@@ -421,7 +421,6 @@ class XasProcessor():
         if averaging <=1:
             return
         files = glob(f'{regriddir}/*.dat')
-        files.sort()
         if regriddir[-1] == '\\' or regriddir[-1] == '/':
             regriddir = regriddir[:-1]
         technique = os.path.basename(regriddir)
@@ -437,10 +436,9 @@ class XasProcessor():
             basename = getbasename(file)
             basenames.append(basename)
         basenames = set(basenames)
-        #print(basenames)
         for basename in basenames:
             i = 0
-            for file in glob(f'{regriddir}/{basename}*.dat'):
+            for file in sorted(glob(f'{regriddir}/{basename}*.dat')):
                 energy, mu = np.loadtxt(file, usecols=(0,1), unpack=True, comments='#')
                 f = open(file,'r')
                 header = ''.join([line for line in f.readlines() if line[0]=='#'][:-1])
