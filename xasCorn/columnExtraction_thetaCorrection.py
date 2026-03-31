@@ -47,8 +47,8 @@ class FileInfo():
         self.scanno = scanno
 
 class XasProcessor():
-    def __init__(self,unit = 'keV', thetaOffset = 0 , dspacing=dspacing, averaging = 1, elements = None, 
-                 excludeElements = None, subdir = 'edge', cpsThreshold = 10000):
+    def __init__(self,unit = 'keV', thetaOffset = 0 , dspacing=dspacing, averaging = 1, elements:list = None, 
+                 excludeElements:list = None, subdir = 'edge', cpsThreshold = 10000):
         self.fileDct = {}
         self.unit = unit
         self.thetaOffset = thetaOffset
@@ -421,6 +421,7 @@ class XasProcessor():
         if averaging <=1:
             return
         files = glob(f'{regriddir}/*.dat')
+        files.sort()
         if regriddir[-1] == '\\' or regriddir[-1] == '/':
             regriddir = regriddir[:-1]
         technique = os.path.basename(regriddir)
