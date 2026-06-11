@@ -8,7 +8,7 @@ import xasCorn.xasNormalisation as xasn
 
 thetaOffset = 0
 
-dspacing = 3.13429 #3.13379 old value, before 8/2025
+dspacing = 3.13439 #3.13429 before 6/2026, 3.13379 before 8/2025
 planck = 6.62607015e-34
 charge = 1.60217663e-19
 speedOfLight = 299792458

@@ -31,9 +31,9 @@ def main(direc = os.path.curdir,thetaOffset = 0):
     parser.add_argument('-s','--subdir',type = str, default = 'edge', help= 'how to arrange output folders. "edge" - everything with ' \
     'the same element and type (EXAFS or XANES) will go in the same folder, or "file" - every file gets its own folder. '\
         'Default "edge"')
-    parser.add_argument('-d','--dspacing',type=float, default=3.13429, help='monochromator d-spacing (default 3.13429). If data from '\
+    parser.add_argument('-d','--dspacing',type=float, default=ce.dspacing, help=f'monochromator d-spacing (default {ce.dspacing}). If data from '\
                         'before 9/2025, should be 3.13379 (or use the new value and apply a theta offset, try -0.005198). ' \
-                        'Recalibrated to 3.13429 9/2025, so use this after 8/2025')
+                        'Recalibrated to 3.13439 6/2026. Previous values - 3.13429 (until 6/2026), 3.13379 (before 8/2025)')
     parser.add_argument('-ct', '--cpsthreshold', type = int, default=10000, help='counts per second threshold for I1 counters, default 10000')
 
     args = parser.parse_args()

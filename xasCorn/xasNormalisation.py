@@ -53,6 +53,24 @@ def normalise(ds: pd.Series, exafsnorm = 3, xanesnorm = 1):
 
 savenorm = partial(np.savetxt, fmt = '%.5f', comments = '#')
 
+def normalisefile(file):
+    f = open(file,'r')
+    header = [line.replace('#','') for line in f.readlines() if line.startswith('#')]
+    f.close()
+    columns = header[-1].replace('\n','').split()
+    energycol = columns[0]
+    header = ''.join(header[:-1])
+    df = pd.read_csv(file,sep = ' ', header= None, comment='#')
+    df.columns = columns
+    energy = df[energycol].values
+    filen = os.path.basename(file.replace('.dat','.nor'))
+    mucol = [col for col in columns if col == 'muT' or col == 'muF1'][0]
+
+    mu = df[mucol]
+    mu.index = energy 
+ 
+    return normalise(mu)  
+
 def normaliseRG(regriddir, unit = 'keV'):
     if not 'regrid' in regriddir or 'norm' in regriddir:
         return
