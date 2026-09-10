@@ -21,7 +21,7 @@ def main(direc = os.path.curdir,thetaOffset = 0):
     parser.add_argument('directory',nargs='?', default=direc, help = 'the directory to run in. Default is current directory')
     parser.add_argument('-to','--thetaOffset', type=float, default=thetaOffset, 
                         help = ('theta offset to apply to monochromator for energy correction. For side crystal '
-                                'approximately -0.103 with default d-spacing 3.13429'))
+                                f'approximately -0.104 with default d-spacing {ce.dspacing}'))
     parser.add_argument('-u', '--unit', default='keV', type = str, help='keV or eV (default keV) for the regrid and normalised files')
     parser.add_argument('-av', '--averaging', default=1, type = int, help='number of spectra to average over, default 1 (no averaging)')
     parser.add_argument('-e', '--elements',default=None, type = str, help = 'comma separated list of elements, e.g. "-e Fe,Cu", '
@@ -33,7 +33,7 @@ def main(direc = os.path.curdir,thetaOffset = 0):
         'Default "edge"')
     parser.add_argument('-d','--dspacing',type=float, default=ce.dspacing, help=f'monochromator d-spacing (default {ce.dspacing}). If data from '\
                         'before 9/2025, should be 3.13379 (or use the new value and apply a theta offset, try -0.005198). ' \
-                        'Recalibrated to 3.13439 6/2026. Previous values - 3.13429 (until 6/2026), 3.13379 (before 8/2025)')
+                        f'Recalibrated to {ce.dspacing} 6/2026. Previous values - 3.13429 (until 6/2026), 3.13379 (before 8/2025)')
     parser.add_argument('-ct', '--cpsthreshold', type = int, default=10000, help='counts per second threshold for I1 counters, default 10000')
 
     args = parser.parse_args()

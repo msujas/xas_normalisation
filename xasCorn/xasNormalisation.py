@@ -1,4 +1,4 @@
-from larch.xafs import find_e0, pre_edge
+from larch.xafs import find_e0, pre_edge, autobk, xftf
 from larch import Group
 import numpy as np
 import os, re
@@ -7,7 +7,7 @@ from glob import glob
 from functools import partial
 
 
-def normalise(ds: pd.Series, exafsnorm = 3, xanesnorm = 1):
+def normalise(ds: pd.Series, exafsnorm = 3, xanesnorm = 1)-> Group:
     '''
     Takes a pandas Series with values as mu and index as energy as an argument.
     The normalisation orders seem to be different between Athena and Larch. 
@@ -49,11 +49,13 @@ def normalise(ds: pd.Series, exafsnorm = 3, xanesnorm = 1):
     post2 = group.energy[-1] - group.e0
     pre_edge(group = group,energy = group.energy, mu = group.mu, e0 = group.e0, pre1=pre1,pre2=pre2,
              norm1 = post1, norm2=post2, nnorm = nnorm)
+    autobk(energy=group.energy, mu=group.mu, group=group, e0=group.e0)
+    xftf(k = group.k, group=group, chi=group.chi)
     return group
 
 savenorm = partial(np.savetxt, fmt = '%.5f', comments = '#')
 
-def normalisefile(file):
+def normalisefile(file)-> Group:
     f = open(file,'r')
     header = [line.replace('#','') for line in f.readlines() if line.startswith('#')]
     f.close()
@@ -63,7 +65,6 @@ def normalisefile(file):
     df = pd.read_csv(file,sep = ' ', header= None, comment='#')
     df.columns = columns
     energy = df[energycol].values
-    filen = os.path.basename(file.replace('.dat','.nor'))
     mucol = [col for col in columns if col == 'muT' or col == 'muF1'][0]
 
     mu = df[mucol]
@@ -75,10 +76,13 @@ def normaliseRG(regriddir, unit = 'keV'):
     if not 'regrid' in regriddir or 'norm' in regriddir:
         return
     normdir = f'{regriddir}/norm'
+    rrdir = f'{regriddir}/Rr'
     files = glob(f'{regriddir}/*.dat')
     if not files:
         return
     os.makedirs(normdir,exist_ok=True)
+    if 'exafs' in regriddir:
+        os.makedirs(rrdir,exist_ok=True)
     for file in files:
         print(file)
         f = open(file,'r')
@@ -96,11 +100,14 @@ def normaliseRG(regriddir, unit = 'keV'):
         mu = df[mucol]
         mu.index = energy
         try:
-            group = normalise(mu)
+            group:Group = normalise(mu)
             header = header + f'edge: {group.e0}\n'
             header += f'edge step: {group.edge_step}\n'
-            header += f'{columns[0]} {mucol}norm'    
-            savenorm(f'{normdir}/{filen}', np.array([energy,group.flat]).transpose(),header=header)
+            headern = header + f'{columns[0]} {mucol}norm'
+            headerr = header + f'r(Å) x(r)'
+            savenorm(f'{normdir}/{filen}', np.array([energy,group.flat]).transpose(),header=headern)
+            if 'exafs' in regriddir:
+                savenorm(f'{rrdir}/{filen}', np.array([group.r,group.chir_mag]).transpose(),header=headerr)
         except AttributeError:
             print(f'couldn\'t normalise {mucol} for {file}')
 
@@ -114,9 +121,13 @@ def normaliseRG(regriddir, unit = 'keV'):
             groupMerge = normalise(ds)
             header = f'edge: {groupMerge.e0}\n'
             header += f'edge step: {groupMerge.edge_step}\n'
-            header += f'energy({unit}) mu_norm'
+            headern = header + f'energy({unit}) mu_norm'
             savenorm(file.replace('.dat','.nor'), np.array([energy,groupMerge.flat]).transpose(), 
-                    header=header)
+                    header=headern)
+            if 'exafs' in regriddir:
+                headerr = header + 'r(Å) x(r)'
+                savenorm(file.replace('.dat','.rr'), np.array([groupMerge.r, groupMerge.chir_mag]).transpose(), header = headerr)
+
         except AttributeError:
             print(f'couldn\'t normalise {file}')
 
