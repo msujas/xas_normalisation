@@ -205,12 +205,26 @@ class XasProcessor():
         mergedct = {}
         files = set(['_'.join(file.split('_')[:-1]) for file in glob(f'{regriddir}/*.dat')])
         energycol = f'energy_offset({self.unit})'
+        match os.path.split(regriddir)[-1]:
+            case 'trans':
+                mucol = 'muT'
+                filepart = 'T'
+                head = 'muT'
+            case 'fluo':
+                mucol = 'muF1'
+                filepart = 'F'
+                head = 'muF'
+            case _:
+                print("not valid regrid directory, skipping")
+                return
         for file in files:
             basefile = os.path.basename(file)
             files2 = glob(f'{file}*.dat')
             mergedct[file] = {}
             e0 = 0
             eend = 100000
+            musum = 0
+            count = 0
             for f in files2:
                 fr = open(f,'r')
                 headcol = [line for line in fr.readlines() if line.startswith('#')][-1].replace('\n','').replace('#','')
@@ -220,39 +234,13 @@ class XasProcessor():
                 df.columns = cols
                 mergedct[file][f] = df
                 energy = df[energycol].values
+                musum += df[mucol].values
+                count += 1
 
-                e0t = round(energy[0],5)
-                eendt = round(energy[-1],5)
-                if e0t > e0:
-                    e0 = e0t
-                if eendt < eend:
-                    eend = eendt
-            muFsum = 0
-            muTsum = 0
-            muTcount = 0
-            muFcount = 0
-            minindex = np.abs(energy-e0).argmin()
-            maxindex = np.abs(energy-eend).argmin()
-            energyAxis = energy[minindex:maxindex+1]
-            for f in mergedct[file]:
-                energy = mergedct[file][f][energycol].values
-                minindex = np.abs(energy-e0).argmin()
-                maxindex = np.abs(energy-eend).argmin()
-                df = mergedct[file][f].iloc[minindex:maxindex+1]
-                if 'muT' in df.columns:
-                    muTsum += df['muT'].values[minindex:maxindex+1]
-                    muTcount += 1
-                if 'muF1' in df.columns:
-                    muFsum += df['muF1'].values[minindex:maxindex+1]
-                    muFcount += 1
-            if muTcount:
-                muTsum = muTsum/muTcount
-                np.savetxt(f'{regriddir}/merge/{basefile}_T_merge.dat',np.array([energyAxis,muTsum]).transpose(),fmt = '%.5f', 
-                        header=f'{energycol} muT')
-            if muFcount:
-                muFsum = muFsum/muFcount
-                np.savetxt(f'{regriddir}/merge/{basefile}_F_merge.dat',np.array([energyAxis,muFsum]).transpose(),fmt = '%.5f',
-                        header=f'{energycol} muF')
+            musum = musum/count
+            np.savetxt(f'{regriddir}/merge/{basefile}_{filepart}_merge.dat',np.array([energy,musum]).transpose(),fmt = '%.5f', 
+                    header=f'{energycol} {head}')
+
     def getElement(self,coldir):
         for e in eList:
             if f'{e}_exafs' or f'{e}_xanes' in coldir:
@@ -284,7 +272,7 @@ class XasProcessor():
         fluodir = f'{coldir}/regrid/fluo'
 
 
-        dfFilteredDct = {}
+        dfFilteredDct:dict[str, pd.DataFrame] = {}
         headers = []
         if self.unit == 'keV':
             escale = 1
@@ -310,15 +298,27 @@ class XasProcessor():
             dfFilteredDct[basefile]= df.iloc[minindex:]
 
         ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct]
+        maxlen = max(ZElens)
+        length_tolerance = 30
+        dellist = []
+        for l, item in zip(ZElens, dfFilteredDct):
+            if l < maxlen - length_tolerance:
+                dellist.append(item)
+        for d in dellist:
+            print(f'{d} too short, not regridding')
+            dfFilteredDct.pop(d,None)
+        ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct] # regenerating due to deleted values
         ZEmins = np.array([np.min(dfFilteredDct[file].index.values) for file in dfFilteredDct])
+        ZEmaxs = np.array([np.max(dfFilteredDct[file].index.values) for file in dfFilteredDct])
         greatestMin = np.max(ZEmins)
+        smallestMax = np.min(ZEmaxs)
         ZEindex = ZElens.index(max(ZElens))
         ZEkey = list(dfFilteredDct.keys())[ZEindex]
         ZE = dfFilteredDct[ZEkey].index.values
         spacing = np.round((ZE[-1] - ZE[0])/(len(ZE)-1),6)
         
-        no_tries = 30
-        grid = np.round(np.arange((greatestMin+spacing),ZE[-1],spacing),5)
+        
+        grid = np.round(np.arange((greatestMin+spacing),smallestMax,spacing),5)
         fluoAv = []
         transAv = []
         oldbasefile = ''
@@ -328,32 +328,12 @@ class XasProcessor():
                 fluoAv = []
                 transAv = []
             oldbasefile = basefile
-            ZEmin = 0
-            ZEmax = -1
-            Emin = grid[0]
-            Emax = grid[-1]
             newfilergT = f'{coldir}/regrid/trans/{file}'
             newfilergF = f'{coldir}/regrid/fluo/{file}'
-
-            if len(dfFilteredDct[file].index.values) < len(grid) - no_tries:
-                print(f'{file} too short, couldn\'t be regridded')
-                if os.path.exists(newfilergT):
-                    os.remove(newfilergT)
-                if os.path.exists(newfilergF):
-                    os.remove(newfilergF)
-                continue
 
             regridDF = pd.DataFrame()
             if len([col for col in dfFilteredDct[file].columns if col in monCountersRG]) == 0:
                 continue
-            while Emin < dfFilteredDct[file].index.values[0]:
-                ZEmin += 1
-                Emin = grid[ZEmin]
-            while Emax > dfFilteredDct[file].index.values[-1]:
-                ZEmax -= 1
-                Emax = grid[ZEmax]
-            newgrid = grid[ZEmin:ZEmax]
-            newgrid = newgrid.round(5)
             monCounter = [c for c in dfFilteredDct[file].columns if c in monCountersRG][0]
             usedi1counters = [c for c in dfFilteredDct[file].columns if c in i1countersRG]
             if usedi1counters:
@@ -381,27 +361,27 @@ class XasProcessor():
                 i1counter = usedi1counters[0]
                 muT = np.log(dfFilteredDct[file][monCounter].values/dfFilteredDct[file][i1counter].values)
                 gridfunc = interp1d(dfFilteredDct[file].index.values,muT)
-                muTregrid = gridfunc(newgrid)
+                muTregrid = gridfunc(grid)
                 regridDF['muT'] = muTregrid
             if i2:
                 mu2 = np.log(dfFilteredDct[file][i1counter].values/dfFilteredDct[file][i2name].values)
                 gridfunc = interp1d(dfFilteredDct[file].index.values,mu2)
-                mu2regrid  = gridfunc(newgrid)
+                mu2regrid  = gridfunc(grid)
                 regridDF['mu2'] = mu2regrid
 
             for c2,fluoCounter in enumerate(usedFluos):
                 muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
                 gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
-                muFregrid = gridfunc(newgrid)
+                muFregrid = gridfunc(grid)
                 regridDF[f'muF{c2+1}'] = muFregrid
 
             for counter in dfFilteredDct[file].columns:
                 if counter in monCountersRG or counter in i1countersRG or counter in fluoCounters or counter == i2name:
                     gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
-                    regridDF[counter] = gridfunc(newgrid).round(1)
+                    regridDF[counter] = gridfunc(grid).round(1)
             if self.unit == 'eV':
-                newgrid = (newgrid*escale).round(2)
-            regridDF.index = newgrid
+                grid = (grid*escale).round(2)
+            regridDF.index = grid
             regridDF.index.name = f'#energy_offset({self.unit})'
 
             if len(regridDF.columns) == 0:
