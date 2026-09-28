@@ -306,6 +306,10 @@ class XasProcessor():
                 dellist.append(item)
         for d in dellist:
             print(f'{d} too short, not regridding')
+            outfileT = f'{transdir}/{d}'
+            outfileF = f'{fluodir}/{d}'
+            if os.path.exists(outfileT): os.remove(outfileT)
+            if os.path.exists(outfileF): os.remove(outfileF)
             dfFilteredDct.pop(d,None)
         ZElens = [len(dfFilteredDct[basefile].index.values) for basefile in dfFilteredDct] # regenerating due to deleted values
         ZEmins = np.array([np.min(dfFilteredDct[file].index.values) for file in dfFilteredDct])
