@@ -5,7 +5,16 @@ import numpy as np
 from scipy.interpolate import interp1d
 from functools import partial
 import xasCorn.xasNormalisation as xasn
+import logging
+import pathlib
 
+logger = logging.getLogger()
+home = pathlib.Path.home()
+logdir = f'{home}/.log/xascorn'
+os.makedirs(logdir,exist_ok=True)
+logfile = f'{logdir}.log'
+logging.basicConfig(filename=logfile, level = logging.INFO, format = '%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt = '%Y/%m/%d_%H:%M:%S')
 thetaOffset = 0
 
 dspacing = 3.13439 #3.13429 before 6/2026, 3.13379 before 8/2025
@@ -49,7 +58,7 @@ class FileInfo():
 class XasProcessor():
     def __init__(self,unit = 'keV', thetaOffset = 0 , dspacing=dspacing, averaging = 1, elements:list = None, 
                  excludeElements:list = None, subdir = 'edge', cpsThreshold = 10000):
-        self.fileDct = {}
+        self.fileDct: dict[str, FileInfo] = {}
         self.unit = unit
         self.thetaOffset = thetaOffset
         self.dspacing = dspacing
@@ -77,7 +86,7 @@ class XasProcessor():
             case 'file': newdir = f'{coldir}/{basename}/'
             case _: raise ValueError('subdir must be "edge" or "file"')
         return newdir
-    def processFile(self,file, startSpectrum = 0 ):
+    def processFile(self,file, startSpectrum = 0, savefiles = True):
         
         currentdir = os.path.dirname(file)
         f = open(file,'r')
@@ -189,13 +198,15 @@ class XasProcessor():
                     if os.path.exists(newfile):
                         os.remove(newfile)
                     continue
-                
+                if not savefiles:
+                    continue
                 f2 = open(newfile,'w')
                 f2.write(newstring)
                 f2.close()
                 dfFiltered.to_csv(newfile,sep = ' ',mode = 'a')
                 print(newfile)
         self.fileDct[file] = FileInfo(filemtime,spectrum_count)
+        return dfFiltered #returns DF of last scan
         
     def merge(self,regriddir):
         if not os.path.exists(regriddir):
@@ -332,8 +343,8 @@ class XasProcessor():
                 fluoAv = []
                 transAv = []
             oldbasefile = basefile
-            newfilergT = f'{coldir}/regrid/trans/{file}'
-            newfilergF = f'{coldir}/regrid/fluo/{file}'
+            newfilergT = f'{transdir}/{file}'
+            newfilergF = f'{fluodir}/{file}'
 
             regridDF = pd.DataFrame()
             if len([col for col in dfFilteredDct[file].columns if col in monCountersRG]) == 0:
@@ -361,28 +372,39 @@ class XasProcessor():
             i2 = i2name in dfFilteredDct[file].columns
             fluoAv.append(fluo)
             transAv.append(trans)
+            def tryregrid(mu, colname):
+                try:
+                    gridfunc = interp1d(dfFilteredDct[file].index.values,mu)
+                    muregrid = gridfunc(grid)
+                    regridDF[colname] = muregrid
+                    return muregrid
+                except ValueError as e:
+                    logging.error(f'problem regridding {file}\n{e}')
+                    raise e
+
             if trans:
                 i1counter = usedi1counters[0]
                 muT = np.log(dfFilteredDct[file][monCounter].values/dfFilteredDct[file][i1counter].values)
-                gridfunc = interp1d(dfFilteredDct[file].index.values,muT)
-                muTregrid = gridfunc(grid)
-                regridDF['muT'] = muTregrid
+                tryregrid(muT, 'muT')
+
             if i2:
                 mu2 = np.log(dfFilteredDct[file][i1counter].values/dfFilteredDct[file][i2name].values)
-                gridfunc = interp1d(dfFilteredDct[file].index.values,mu2)
-                mu2regrid  = gridfunc(grid)
-                regridDF['mu2'] = mu2regrid
+                tryregrid(mu2, 'mu2')
 
             for c2,fluoCounter in enumerate(usedFluos):
                 muF = dfFilteredDct[file][fluoCounter]/dfFilteredDct[file][monCounter]
-                gridfunc = interp1d(dfFilteredDct[file].index.values,muF)
-                muFregrid = gridfunc(grid)
-                regridDF[f'muF{c2+1}'] = muFregrid
+                tryregrid(muF, f'muF{c2+1}')
 
-            for counter in dfFilteredDct[file].columns:
+            for counter in dfFilteredDct[file].columns: #saving regrid of original counters
                 if counter in monCountersRG or counter in i1countersRG or counter in fluoCounters or counter == i2name:
-                    gridfunc = interp1d(dfFilteredDct[file].index.values,dfFilteredDct[file][counter].values)
-                    regridDF[counter] = gridfunc(grid).round(1)
+                    countervalues = dfFilteredDct[file][counter].values
+                    try:
+                        gridfunc = interp1d(dfFilteredDct[file].index.values,countervalues)
+                        regridDF[counter] = gridfunc(grid).round(1)
+                    except ValueError as e:
+                        logging.error(f'problem regridding counters in {file}\n{e}')
+                        raise e
+
             if self.unit == 'eV':
                 grid = (grid*escale).round(2)
             regridDF.index = grid
@@ -489,5 +511,33 @@ class XasProcessor():
                 if self.fileDct[file].scanno == -1:
                     continue
                 self.regrid(outdir)
+
+
+def processScanDF(dfFiltered:pd.DataFrame):
+    '''
+    get edge step for a scan
+    '''
+    cols = dfFiltered.columns
+    moncounter = [col for col in cols if col in monCounters][0]
+    i1s = [col for col in cols if col in i1counters]
+    fcs = [col for col in cols if col in fluoCounters]
+    tstep = 0
+    fstep = 0
+    mon = dfFiltered[moncounter]
+    e = dfFiltered.index.values
+    if i1s:
+        i1c = i1s[0]
+        muT = np.log10(mon/dfFiltered[i1c])
+        ds = pd.Series(data = muT, index = e)
+        gT = xasn.normalise(ds)
+        tstep = gT.edge_step
+    if fcs:
+        fc = fcs[0]
+        muF = dfFiltered[fc]/mon
+        ds = pd.Series(data= muF, index = e)
+        gF = xasn.normalise(ds)
+        fstep = gF.edge_step
+    return tstep, fstep
+
 
 
