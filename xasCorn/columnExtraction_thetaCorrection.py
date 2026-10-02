@@ -513,7 +513,7 @@ class XasProcessor():
                 self.regrid(outdir)
 
 
-def processScanDF(dfFiltered:pd.DataFrame):
+def getDFedgeStep(dfFiltered:pd.DataFrame):
     '''
     get edge step for a scan
     '''
