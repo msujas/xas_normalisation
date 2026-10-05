@@ -330,10 +330,10 @@ class XasProcessor():
         ZEindex = ZElens.index(max(ZElens))
         ZEkey = list(dfFilteredDct.keys())[ZEindex]
         ZE = dfFilteredDct[ZEkey].index.values
-        spacing = np.round((ZE[-1] - ZE[0])/(len(ZE)-1),6)
+        spacing = (ZE[-1] - ZE[0])/(len(ZE)-1)
         
         
-        grid = np.round(np.arange((greatestMin+spacing),smallestMax,spacing),5)
+        grid = np.round(np.arange((greatestMin+spacing),smallestMax,spacing),6)
         fluoAv = []
         transAv = []
         oldbasefile = ''

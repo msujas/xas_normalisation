@@ -9,6 +9,10 @@ import os
 from glob import glob
 import time
 import argparse
+import logging
+from .columnExtraction_thetaCorrection import logfile
+logging.basicConfig(filename=logfile, level = logging.INFO, format = '%(asctime)s %(levelname)-8s %(message)s',
+                        datefmt = '%Y/%m/%d_%H:%M:%S')
 
 def main(direc = os.path.curdir,thetaOffset = 0):
     '''
