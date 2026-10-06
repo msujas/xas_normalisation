@@ -539,5 +539,18 @@ def getDFedgeStep(dfFiltered:pd.DataFrame):
         fstep = gF.edge_step
     return tstep, fstep
 
+def getlastscan(file):
+    f = open(file,'r')
+    s = 0
+    for line in f:
+        if line.startswith('#S'):
+            s = int(line.split()[1])
+    f.close()
+    return s
+
+def filegetedgestep(file):
+    lastscan = getlastscan(file)
+    df = XasProcessor().processFile(file, startSpectrum=lastscan-1,savefiles=False)
+    return getDFedgeStep(df)
 
 
