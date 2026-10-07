@@ -527,7 +527,7 @@ def getDFedgeStep(dfFiltered:pd.DataFrame):
     e = dfFiltered.index.values
     if i1s:
         i1c = i1s[0]
-        muT = np.log10(mon/dfFiltered[i1c])
+        muT = np.log(mon/dfFiltered[i1c])
         ds = pd.Series(data = muT, index = e)
         gT = xasn.normalise(ds)
         tstep = gT.edge_step
