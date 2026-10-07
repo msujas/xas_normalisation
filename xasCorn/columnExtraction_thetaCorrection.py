@@ -86,8 +86,8 @@ class XasProcessor():
             case 'file': newdir = f'{coldir}/{basename}/'
             case _: raise ValueError('subdir must be "edge" or "file"')
         return newdir
-    def processFile(self,file, startSpectrum = 0, savefiles = True):
-        
+    def processFile(self,file, startSpectrum = 0, savefiles = True) -> pd.DataFrame:
+        dfFiltered = pd.DataFrame()
         currentdir = os.path.dirname(file)
         f = open(file,'r')
         data = f.read()
