@@ -87,7 +87,7 @@ class XasProcessor():
             case _: raise ValueError('subdir must be "edge" or "file"')
         return newdir
     def processFile(self,file, startSpectrum = 0, savefiles = True) -> pd.DataFrame:
-        dfFiltered = pd.DataFrame()
+        dfFiltered = None
         currentdir = os.path.dirname(file)
         f = open(file,'r')
         data = f.read()
